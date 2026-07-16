@@ -30,6 +30,14 @@ Incorrectly identifies desus and mero
 
 - Speaker labels are switched
 
+# Episode 12
+
+- Speaker labels are switched
+
+# Episode 13
+
+- Speaker Labels are switched
+
 # Bodega Boys Episode 100 Splack Mirror (ee9b403d-3950-4eb7-bb13-176e96b22a74)
 
 - Incorrectly tags the intro rant as Desus (usually the intro skits are done by Mero, anytime they say Papi or Michael Anthony or Officer Prosciutto or Yesenia it is Mero)
