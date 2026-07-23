@@ -10,7 +10,7 @@ Three stages, split across two scripts because two of them are tightly coupled a
 
 1. **Speaker correction** (§2) — must run first per episode; gates stage 2. Lives in `enrich.py`.
 2. **Claude enrichment** (§4) — text reasoning over each episode's utterances → characters, stories, AKAs, media references, topics, intro boundary. Only runs once an episode's speaker labels are verified. Lives in `enrich.py`, same loop as stage 1.
-3. **Embeddings** (§5) — text → vector for every utterance, no reasoning involved, no dependency on 1 or 2 (only touches utterance *text*, which neither stage modifies). Its own script, `embed.py`.
+3. **Embeddings** (§5) — text → vector for every utterance, no reasoning involved, no dependency on 1 or 2 (only touches utterance _text_, which neither stage modifies). Its own script, `embed.py`.
 
 ### Orchestration
 
@@ -42,7 +42,7 @@ for batch in utterances where embedding IS NULL, batched 200 at a time:
 
 ## 1. Schema additions
 
-Dropped `skits`/`skit_appearances` from the original plan — most "skits" are fully described by which character is being performed, so they're derived from `character_appearances` rather than a separate canonical entity (see rationale below). AKAs are self-referential Desus/Mero nicknames, not characters, so they get their own table with no FK to `characters`.
+Dropped `skits`/`skit_appearances` from the original plan — most "skits" are fully described by which character is being performed, so they're derived from `character_appearances` rather than a separate canonical entity (see rationale below). AKAs are self-referential Desus/Mero nicknames, not characters, so they get their own table with no FK to `characters`. Characters should probably have a column that specifies if they belong to Desus or Mero? Many of the recurring characters are done by Mero ie Ben Carson, Yesenia, Michael Anthony sometimes done by both or racist NYC cop can be done by both...
 
 ```sql
 -- Characters: one canonical name each, matched/deduped across episodes by the enrichment prompt
@@ -135,28 +135,29 @@ CREATE INDEX utterances_embedding_idx ON utterances
 
 ### Why no `skits` table
 
-A skit is defined by which character is being performed, so `character_appearances` already *is* the skit instance (character_id + start_ms + end_ms). A separate `skits` table would need its own name/dedup logic, except skit names have no fixed vocabulary the way characters do (you can seed `characters` with the ~18 known names; you can't seed "skit names" the same way) — Claude would invent a slightly different name per episode and fragment the catalog.
+A skit is defined by which character is being performed, so `character_appearances` already _is_ the skit instance (character_id + start_ms + end_ms). A separate `skits` table would need its own name/dedup logic, except skit names have no fixed vocabulary the way characters do (you can seed `characters` with the ~18 known names; you can't seed "skit names" the same way) — Claude would invent a slightly different name per episode and fragment the catalog.
 
 - `/skits` page = query over `character_appearances`, grouped by character, or grouped by overlapping time windows within an episode to catch multi-character scenes (e.g. Officer Prosciutto + Michael Anthony arguing = two overlapping appearance rows, no extra table needed to know that's "a scene").
 - One-off gags with no recognized character → not worth a canonical identity at all; if worth capturing, they fold into `stories` as a one-time summary row.
-- The intro skit specifically recurs in *every* episode with the same structural role — not a content item to browse, so it's `episodes.content_start_ms`, not a row anywhere.
+- The intro skit specifically recurs in _every_ episode with the same structural role — not a content item to browse, so it's `episodes.content_start_ms`, not a row anywhere.
 
 ---
 
 ## 2. Speaker correction (must run before enrichment)
 
-`main.py`'s `speaker_identification` (speaker_type="name") doesn't always get it right. **Why, structurally:** per AssemblyAI's docs, `speaker_type: "name"` identification uses *conversation content* to infer who's speaking — "no voice enrollment needed." It is not matching against real voiceprints of Desus/Mero/Victor (`main.py` never supplied reference audio, only text `name`/`description` metadata). So when a host does a bit as "Ben Carson" or "Michael Anthony," the content genuinely sounds like that persona, and the content-inference model reasonably (for its purposes) labels the segment with that name instead of the host performing it — this is a property of how the feature works, not something processing episodes slower/serially would avoid. Diarization itself (the separate clustering step feeding into identification) is also more error-prone for fast, interruptive, cross-talking banter like this show's format, per AssemblyAI's own best-practices notes — likely the source of split-cluster duplicates like `"A-Trak" `/ `"A-Trak - 1"`. One real, untried lever: `speaker_identification` supports an `effort: "medium"` setting (`main.py` never sets it, so it defaults to `"low"`); AssemblyAI recommends medium specifically for "elevated conversations where individuals interrupt each other." It can be re-run against an already-completed transcript via a separate Speech Understanding API call, without re-transcribing, if worth testing later. Regardless, this correction stage exists because the upstream labels are what they are — this is the layer to fix it at, not the transcription step.
+`main.py`'s `speaker_identification` (speaker_type="name") doesn't always get it right. **Why, structurally:** per AssemblyAI's docs, `speaker_type: "name"` identification uses _conversation content_ to infer who's speaking — "no voice enrollment needed." It is not matching against real voiceprints of Desus/Mero/Victor (`main.py` never supplied reference audio, only text `name`/`description` metadata). So when a host does a bit as "Ben Carson" or "Michael Anthony," the content genuinely sounds like that persona, and the content-inference model reasonably (for its purposes) labels the segment with that name instead of the host performing it — this is a property of how the feature works, not something processing episodes slower/serially would avoid. Diarization itself (the separate clustering step feeding into identification) is also more error-prone for fast, interruptive, cross-talking banter like this show's format, per AssemblyAI's own best-practices notes — likely the source of split-cluster duplicates like `"A-Trak" `/ `"A-Trak - 1"`. One real, untried lever: `speaker_identification` supports an `effort: "medium"` setting (`main.py` never sets it, so it defaults to `"low"`); AssemblyAI recommends medium specifically for "elevated conversations where individuals interrupt each other." It can be re-run against an already-completed transcript via a separate Speech Understanding API call, without re-transcribing, if worth testing later. Regardless, this correction stage exists because the upstream labels are what they are — this is the layer to fix it at, not the transcription step.
 
-**This whole stage is detection only, no AI.** A cheap per-episode classifier (SQL/regex/langid, all free) sorts episodes into `verified` or `needs_review`. Anything not `verified` gets printed with its evidence and fixed by hand in the Supabase console (§2.3) — there is no automated resolution/mapping call and no auto-applied `UPDATE`. This was a deliberate simplification after checking real data: a manual pass on the flagged minority is cheap enough, and it keeps a human in the loop on writes that silently compound into every downstream feature (character attribution, `akas.host`, the frontend speaker filter/stats bar) if wrong. Revisit this if the flagged fraction turns out too large to fix by hand (see note at the end of §2.3) — the fallback would be having Claude *draft* a mapping suggestion per flagged episode for you to approve, not to auto-apply it.
+**This whole stage is detection only, no AI.** A cheap per-episode classifier (SQL/regex/langid, all free) sorts episodes into `verified` or `needs_review`. Anything not `verified` gets printed with its evidence and fixed by hand in the Supabase console (§2.3) — there is no automated resolution/mapping call and no auto-applied `UPDATE`. This was a deliberate simplification after checking real data: a manual pass on the flagged minority is cheap enough, and it keeps a human in the loop on writes that silently compound into every downstream feature (character attribution, `akas.host`, the frontend speaker filter/stats bar) if wrong. Revisit this if the flagged fraction turns out too large to fix by hand (see note at the end of §2.3) — the fallback would be having Claude _draft_ a mapping suggestion per flagged episode for you to approve, not to auto-apply it.
 
-| Failure mode | What it looks like | Detection |
-| --- | --- | --- |
-| Unresolved raw labels | `speaker` is a raw diarization placeholder like `"A"` / `"B"` / `"C"` instead of a real name | SQL, 100% recall, free |
-| Whole-episode swap | Desus and Mero's names are consistently flipped for the entire episode | Tri-state signals (§2.1): episode-number callout + Spanish code-switching ratio |
-| Character/impression given its own label | A bit character or impression (e.g. `"Ben Carson"`, `"Michael Anthony"`, `"Bad Bobbie"`) shows up as a distinct speaker label instead of being attributed to whichever host is performing it | Same not-in-`KNOWN_NAMES` check as unresolved labels — see note below |
-| Split diarization clusters | The same real person (host or guest) gets two different raw labels because the diarizer opened a new cluster mid-episode (e.g. `"A-Trak"` and `"A-Trak - 1"`) | Same not-in-`KNOWN_NAMES` check; the fix is merging both labels to one name |
+| Failure mode                             | What it looks like                                                                                                                                                                           | Detection                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Unresolved raw labels                    | `speaker` is a raw diarization placeholder like `"A"` / `"B"` / `"C"` instead of a real name                                                                                                 | SQL, 100% recall, free                                                          |
+| Whole-episode swap                       | Desus and Mero's names are consistently flipped for the entire episode                                                                                                                       | Tri-state signals (§2.1): episode-number callout + Spanish code-switching ratio |
+| Character/impression given its own label | A bit character or impression (e.g. `"Ben Carson"`, `"Michael Anthony"`, `"Bad Bobbie"`) shows up as a distinct speaker label instead of being attributed to whichever host is performing it | Same not-in-`KNOWN_NAMES` check as unresolved labels — see note below           |
+| Split diarization clusters               | The same real person (host or guest) gets two different raw labels because the diarizer opened a new cluster mid-episode (e.g. `"A-Trak"` and `"A-Trak - 1"`)                                | Same not-in-`KNOWN_NAMES` check; the fix is merging both labels to one name     |
+| Conflated cluster (host + Victor)        | The inverse of a split cluster: a single raw label (e.g. `"C"`) covers two different real people at different points in the episode — part of it is actually a host doing a bit or cross-talking, part of it is genuinely Victor                       | Same not-in-`KNOWN_NAMES` check surfaces the label; distinguishing host-vs-Victor within it has no mechanical signal — requires listening |
 
-**Why `KNOWN_NAMES` is a short, explicit allowlist rather than "anything that looks like a real name."** Real observed speaker labels from this data: `Desus Nice`, `The Kid Mero`, `Victor`, `A`, `B`, `C`, `D`, `Tyler Beckford`, `Ben Carson`, `Alex Rodriguez`, `Vashti`, `Rob Gronkowski`, `Lavar Ball`, `Michael Sal Anthony`, `Michael K`, `Bad Bobbie`, `Michael Anthony`, `Valerio`, `Jonah Hill`, `Jonathan Nathaniel Mashburn`, `Mr. Man`, `Herman Cain`, `Eric Rizzo`, `Michael Anthony Prosciutto`, `A-Trak - 1`, `Charles Oakley`. Of these, only **`Vashti`, `Michael K`, `Jonah Hill`, `Charles Oakley`, `A-Trak`** are confirmed real guests — everything else is either a raw placeholder or a character/impression a host is performing. Critically, there's no way to tell those apart by the *shape* of the string: `"Michael Anthony"` and `"Rob Gronkowski"` are equally plausible-looking names, so a regex/heuristic can't separate "real guest" from "bit character." The list above is verified ground truth (confirmed by ear), not a guess — that's what makes hardcoding it safe here, unlike guessing from string shape:
+**Why `KNOWN_NAMES` is a short, explicit allowlist rather than "anything that looks like a real name."** Real observed speaker labels from this data: `Desus Nice`, `The Kid Mero`, `Victor`, `A`, `B`, `C`, `D`, `Tyler Beckford`, `Ben Carson`, `Alex Rodriguez`, `Vashti`, `Rob Gronkowski`, `Lavar Ball`, `Michael Sal Anthony`, `Michael K`, `Bad Bobbie`, `Michael Anthony`, `Valerio`, `Jonah Hill`, `Jonathan Nathaniel Mashburn`, `Mr. Man`, `Herman Cain`, `Eric Rizzo`, `Michael Anthony Prosciutto`, `A-Trak - 1`, `Charles Oakley`. Of these, only **`Vashti`, `Michael K`, `Jonah Hill`, `Charles Oakley`, `A-Trak`** are confirmed real guests — everything else is either a raw placeholder or a character/impression a host is performing. Critically, there's no way to tell those apart by the _shape_ of the string: `"Michael Anthony"` and `"Rob Gronkowski"` are equally plausible-looking names, so a regex/heuristic can't separate "real guest" from "bit character." The list above is verified ground truth (confirmed by ear), not a guess — that's what makes hardcoding it safe here, unlike guessing from string shape:
 
 ```python
 KNOWN_HOSTS = {"Desus Nice", "The Kid Mero", "Victor"}
@@ -177,9 +178,10 @@ SELECT DISTINCT episode_id, speaker FROM utterances
 WHERE speaker NOT IN ('Desus Nice', 'The Kid Mero', 'Victor', 'Vashti', 'Michael K', 'Jonah Hill', 'Charles Oakley', 'A-Trak');
 ```
 
-For episodes where every label is already known, whether they're *correctly* assigned still needs more than one signal — a whole-episode swap can hide behind two otherwise-valid names. Each signal below is **tri-state** — `"confirm"` / `"contradict"` / `"silent"` — not a plain boolean. That distinction matters: a boolean "did this check find a problem" can't tell the difference between "this signal actively agrees the labels are correct" and "this signal never fired an opinion either way," which collapses `verified` and inconclusive-silence into the same non-event and makes `verified` effectively unreachable.
+For episodes where every label is already known, whether they're _correctly_ assigned still needs more than one signal — a whole-episode swap can hide behind two otherwise-valid names. Each signal below is **tri-state** — `"confirm"` / `"contradict"` / `"silent"` — not a plain boolean. That distinction matters: a boolean "did this check find a problem" can't tell the difference between "this signal actively agrees the labels are correct" and "this signal never fired an opinion either way," which collapses `verified` and inconclusive-silence into the same non-event and makes `verified` effectively unreachable.
 
 1. **The episode-number callout (near-deterministic anchor).** Per the pipeline prompt, Desus is the one who says "Bodega Boys episode N" right after the intro drop. Regex `bodega boys episode \d+` (case-insensitive) across the episode:
+
    ```python
    CALLOUT_PATTERN = re.compile(r"bodega boys episode \d+", re.IGNORECASE)
 
@@ -189,7 +191,9 @@ For episodes where every label is already known, whether they're *correctly* ass
                return "confirm" if u["speaker"] == "Desus Nice" else "contradict"
        return "silent"   # no callout line found in this episode at all
    ```
+
 2. **Spanish code-switching ratio (strong statistical signal).** Mero is the one who code-switches to Dominican Spanish; if most of an episode's Spanish content sits on `Desus Nice`'s label instead, that's suspicious. Note: AssemblyAI's `code_switching`/`language_detection` config only returns a **transcript-level** summary (`language_detection_results.code_switching_languages`, top 2 languages for the whole episode) — there's no per-utterance language field coming back from the API, and `main.py` doesn't persist one either. So this has to be computed directly from utterance text using a lightweight offline language-detection library (`langid` — pure Python, no network calls), not read off an existing column:
+
    ```python
    import langid
 
@@ -221,6 +225,7 @@ For episodes where every label is already known, whether they're *correctly* ass
            return "contradict"             # Desus code-switches more — labels likely swapped
        return "silent"                     # gap too small to mean anything
    ```
+
 3. **Heritage keyword scan / direct-address adjacency (optional, supporting signals).** Regex for Jamaica/Jamaican/patois vs. Dominican/DR references, or checking that utterance N+1 is the person addressed by name in utterance N — both cheap, both weak alone. Not required for a first pass; add only if the two signals above turn out to have too many `silent` results in practice.
 
 `classify()` combines the signals:
@@ -238,7 +243,7 @@ def classify(utterances: list[dict]) -> str:      # 'needs_resolution' | 'needs_
     return "needs_review"                            # every signal silent — inconclusive, not confirmed
 ```
 
-`needs_resolution` and `needs_review` both mean the same practical thing here — go look at this episode — the distinct names are just so the printed report can say *why* it was flagged (unknown label vs. contradicted signal) to point you at the right thing to check.
+`needs_resolution` and `needs_review` both mean the same practical thing here — go look at this episode — the distinct names are just so the printed report can say _why_ it was flagged (unknown label vs. contradicted signal) to point you at the right thing to check.
 
 ### 2.2 What happens to a flagged episode
 
@@ -257,7 +262,20 @@ UPDATE utterances SET speaker = CASE speaker
 WHERE episode_id = $1;
 ```
 
-No confidence gating, no auto-apply — every correction goes through your own read of the transcript before it's run. If the flagged fraction turns out to be large in practice (an early check found roughly 4 of 11 episodes needing a look, which would be a lot of episodes at 265 if that rate holds), the fallback is having Claude *draft* a mapping suggestion with evidence for you to review and approve per episode, rather than reading full transcripts yourself for every flagged episode — but that's not built now; cross that bridge only if manual review actually becomes the bottleneck.
+No confidence gating, no auto-apply — every correction goes through your own read of the transcript before it's run. If the flagged fraction turns out to be large in practice (an early check found roughly 4 of 11 episodes needing a look, which would be a lot of episodes at 265 if that rate holds), the fallback is having Claude _draft_ a mapping suggestion with evidence for you to review and approve per episode, rather than reading full transcripts yourself for every flagged episode — but that's not built now; cross that bridge only if manual review actually becomes the bottleneck.
+
+**Conflated clusters need a time-scoped `UPDATE`, not a blanket `CASE`.** The whole-label `CASE` above assumes one raw label maps to exactly one real person for the entire episode — true for a placeholder, a split cluster, or a whole-episode swap, but not for a conflated cluster (the failure mode above), where the same label is genuinely two different people depending on when they spoke. Resolving it means finding the boundary by ear and scoping the fix to `start_ms`, not just `speaker`:
+
+```sql
+-- e.g. label "C" is Desus doing a bit for the first stretch, then genuinely Victor after
+UPDATE utterances SET speaker = 'Desus Nice'
+WHERE episode_id = $1 AND speaker = 'C' AND start_ms < 1234000;
+
+UPDATE utterances SET speaker = 'Victor'
+WHERE episode_id = $1 AND speaker = 'C' AND start_ms >= 1234000;
+```
+
+Worth doing the scoped version rather than collapsing the whole label to `Victor` and calling the misattributed stretch acceptable noise — the boundary is already known once you've listened to confirm the label is conflated in the first place, so the extra `UPDATE` costs little, and an avoidable wrong label here still propagates into every downstream table gated on `speaker` (character attribution, `akas.host`, the stats bar), not just the transcript view.
 
 ### 2.4 Gating and re-verification
 
@@ -296,7 +314,7 @@ existing_topics = supabase.table("topics").select("id, name").execute().data
 ### 3.2 Prompt structure
 
 - System prompt: the podcast/character background context already drafted in `enrich.py` (hosts, recurring characters with descriptions, intro/AKA structural markers).
-- Inject `existing_characters` / `existing_akas` / `existing_topics` as a "known entities" block: *"If this episode references one of these, use its exact name/term. Only propose a new one if it's genuinely not in this list."*
+- Inject `existing_characters` / `existing_akas` / `existing_topics` as a "known entities" block: _"If this episode references one of these, use its exact name/term. Only propose a new one if it's genuinely not in this list."_
 - Inject the episode's utterances as the content to analyze.
 
 ### 3.3 Force structured output via tool use
@@ -315,15 +333,15 @@ Define one tool with a JSON schema covering every category, and set `tool_choice
         "items": {
           "type": "object",
           "properties": {
-            "name": { "type": "string" },        // must match existing_characters name, or a new name
+            "name": { "type": "string" }, // must match existing_characters name, or a new name
             "is_new": { "type": "boolean" },
             "description": { "type": "string" }, // only meaningful when is_new
             "start_ms": { "type": "integer" },
             "end_ms": { "type": "integer" },
-            "context": { "type": "string" }
+            "context": { "type": "string" },
           },
-          "required": ["name", "is_new", "start_ms", "end_ms"]
-        }
+          "required": ["name", "is_new", "start_ms", "end_ms"],
+        },
       },
       "akas": {
         "type": "array",
@@ -334,10 +352,10 @@ Define one tool with a JSON schema covering every category, and set `tool_choice
             "host": { "type": "string", "enum": ["Desus", "Mero"] },
             "is_new": { "type": "boolean" },
             "explanation": { "type": "string" },
-            "start_ms": { "type": "integer" }
+            "start_ms": { "type": "integer" },
           },
-          "required": ["term", "host", "is_new", "start_ms"]
-        }
+          "required": ["term", "host", "is_new", "start_ms"],
+        },
       },
       "stories": {
         "type": "array",
@@ -347,10 +365,10 @@ Define one tool with a JSON schema covering every category, and set `tool_choice
             "speaker": { "type": "string" },
             "start_ms": { "type": "integer" },
             "end_ms": { "type": "integer" },
-            "summary": { "type": "string" }
+            "summary": { "type": "string" },
           },
-          "required": ["speaker", "start_ms", "end_ms", "summary"]
-        }
+          "required": ["speaker", "start_ms", "end_ms", "summary"],
+        },
       },
       "media_references": {
         "type": "array",
@@ -359,18 +377,25 @@ Define one tool with a JSON schema covering every category, and set `tool_choice
           "properties": {
             "title": { "type": "string" },
             "media_type": { "type": "string" },
-            "start_ms": { "type": "integer" }
+            "start_ms": { "type": "integer" },
           },
-          "required": ["title", "media_type"]
-        }
+          "required": ["title", "media_type"],
+        },
       },
       "topics": {
         "type": "array",
-        "items": { "type": "string" }  // matched against existing_topics or new
-      }
+        "items": { "type": "string" }, // matched against existing_topics or new
+      },
     },
-    "required": ["content_start_ms", "characters", "akas", "stories", "media_references", "topics"]
-  }
+    "required": [
+      "content_start_ms",
+      "characters",
+      "akas",
+      "stories",
+      "media_references",
+      "topics",
+    ],
+  },
 }
 ```
 
@@ -424,3 +449,26 @@ Cost/scale sanity check: 245k utterances × ~15 words avg is a few million token
 
 6. Pick the embedding model/dimension, run the `ALTER TABLE` for `utterances.embedding`.
 7. Batch-fetch `WHERE embedding IS NULL`, embed, write back. Test with `--limit` on a small batch before running over all 245k utterances.
+
+---
+
+## 7. Incident recovery: recovering a botched `speaker` UPDATE without a DB backup
+
+Happened once already (see `swap.md` — `11763f23-a31a-4a50-a8a8-067440bb4745`, a manual correction `UPDATE` hit the wrong `episode_id` and collapsed every `speaker` in that episode to `'Desus Nice'`). No DB backups exist, and a full restore isn't wanted anyway since it'd roll back every other correction made the same day. Recovery doesn't need a backup, because the pre-corruption data still exists outside the database:
+
+- `episodes.assemblyai_transcript_id` (`main.py:110-115`) is a durable pointer to the original AssemblyAI transcript, independent of anything since done to `utterances.speaker`.
+- AssemblyAI retains completed transcripts server-side — re-fetching by that id returns the exact same utterances (same order, same `start`/`end`ms, same original `speaker`) without re-transcribing or costing anything.
+- Only `utterances.speaker` was ever mutated by hand; `start_ms`/`end_ms`/`text` are untouched, so they're a reliable join key back to the corrupted rows.
+
+**Script idea, one-off, run by episode id — not part of the regular `enrich.py`/`main.py` pipeline:**
+
+1. Take `--episode-id` as an argument (never run this over more than one episode at a time — that's the whole point of scoping the fix).
+2. Look up `assemblyai_transcript_id` for that episode from `episodes`.
+3. `aai.Transcript.get_by_id(transcript_id)` to pull the original `utterances` list back from AssemblyAI.
+4. Fetch the current (corrupted) `utterances` rows for that `episode_id` from Supabase, ordered the same way (`start_ms`).
+5. Zip the two lists together and sanity-check before touching anything: same count, and `start_ms`/`end_ms` line up pairwise. Abort loudly if they don't — that means the join assumption is wrong and this needs a different approach, not a forced write.
+6. Dry run first: print a diff (row id, old `speaker` → restored `speaker`) for every row that would change. No writes yet.
+7. Only after eyeballing the diff, apply it: one `UPDATE utterances SET speaker = $1 WHERE id = $2` per row (or a single batched upsert by `id`), scoped to those specific row ids — never a blanket `WHERE episode_id = $1` again, precisely because that's the mistake that caused this.
+8. This restores AssemblyAI's *original* labels, which may still be pre-correction (e.g. still needs the Desus/Mero swap this episode was already flagged for in `swap.md`) — it undoes the accidental UPDATE, it doesn't finish the correction. Re-run the intended fix afterward, this time against the right uuid.
+
+General lesson for `§2.3`-style manual corrections going forward: prefer `UPDATE ... WHERE episode_id = $1 AND id IN (...)` or a `RETURNING` clause you eyeball before committing, and paste the target uuid from the episode's own row (e.g. copy it out of a fresh `SELECT` in the same console session) rather than from a list in a markdown file, so a stale/mistyped uuid is caught before it runs.

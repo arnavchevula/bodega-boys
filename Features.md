@@ -70,6 +70,10 @@ Count all occurrences they say Allegedly
 
 - Find all times where Desus says "gotta hear both sides"
 
+# Desus Fuego
+
+- Hot takes from Desus
+
 # Characters
 
 - Judy (Mero's Aunt In Law)
@@ -88,4 +92,12 @@ Count all occurrences they say Allegedly
 - NYC racist italian guys
 - Hoteps / Desus third eye (open your third eye, white devil characters)
 - Jay Z
+- Ray J
+- Joanne the Scammer
 - End of the intro skit is usually marked by "Do the motherfucking drop" or some variation, play the intro song and then Desus will say "Bodega Boys episode 195.. "
+
+- After episode 12 or so they start doing the podcasts at 10am?
+- suprisingly not every episode is desus heavy, episode 16 has mero speaking more somehow (find all episodes where mero takes charge)
+- find all times Desus got annoyed with Mero (usually besides Mero was too blazed)
+- EPisode 167 WFE: intro skit features MULTIPLE characters, a presidential debate between mr fun fun, michael anthony, Don Lemon
+- episode 200 2HUNDO: intro skit features many characters, yesenia, officer prosciutto, michael anthony

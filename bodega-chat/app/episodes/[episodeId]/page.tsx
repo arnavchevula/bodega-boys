@@ -185,7 +185,7 @@ export default async function Episode({
                       key={speaker}
                       className={`h-4 ${getSpeakerColor(speaker)} ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""} absolute top-0 left-0 flex items-center fadeWidth origin-left`}
                     >
-                      <p className="text-xs text-white font-bold ml-1">
+                      <p className="text-xs text-white font-bold ml-1 truncate">
                         {speaker}
                       </p>
                     </div>

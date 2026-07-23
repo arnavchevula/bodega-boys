@@ -1,0 +1,51 @@
+### Swap List
+
+- ~~02cafbaa-2795-4939-aef2-598f8c21d635~~
+- ~~fa8c3d1c-44de-482d-bf9b-e6cff0bad581~~
+- ~~11d5ba8a-8bcc-4725-a7dc-bb1325ee651f~~
+- ~~2b358db7-acf2-4943-b9fc-77e2d61e21a9~~
+- ~~f5ab0c09-8138-4306-bbfa-7ce87a005b8b~~
+- ~~349afc26-64c3-4b19-b6ec-4eca753ba0a8~~
+- ~~6a1d00b7-3602-42d9-b482-432861696552~~
+- ~~c71fa7ec-7664-4014-9340-2f6cf09b2456~~
+- ~~11b50229-831c-40f6-9f1e-8bc3e6c8d439~~
+- ~~e8a15dd1-438e-41e6-afc5-088061b6c7cc~~
+- ~~8cd6d38a-10a6-4beb-85ec-3bbadb3da2ea~~
+- ~~c7abb2a2-1f77-40d3-a978-e45441a05aed~~
+- ~~daa51033-61b3-44d8-8f58-527405bd5382~~
+- ~~11763f23-a31a-4a50-a8a8-067440bb4745~~ (fucked up, accidentally ran sql update command for diff episode and made everything in this episode desus.... )
+- ~~b4d6a06e-b0b5-4a46-b827-86aa4de0a900~~
+- ~~156c78d8-a235-4550-922e-7685774281a7~~
+- ~~656ffd95-3c7a-490a-82ae-1bbff2d99f45~~
+- ~~47b09326-62d3-4ba9-ac34-ddfae6bb3eb0~~ (this neeeds to be revisited, the transcript wasnt segmented and and is one continuous utterance )
+- ~~892220ab-f9a1-4fd9-bf18-e24cc3c788ef~~
+- ~~c59a5b46-8ed2-4354-a5be-7c9195575dcd~~ (Didn't completely segment the utterances properly, tons of overlap)
+- ~~55bd57c9-f64c-46b0-ab52-095f060a5418~~
+- ~~a7705434-37c7-46d7-ade3-d8a48343d28d~~
+- ~~0f02d701-c5c1-4da7-a088-dd67307f5bd7~~
+- ~~bb4da4a9-9f26-410d-a74c-c91dba42390a~~
+- ~~cc03d6ee-3810-47ba-ba6c-5c85d7f2dbd7~~
+- ~~7e082cd5-7a27-4847-8ef1-412a1046b05e~~
+- ~~f051bd79-8721-416f-a036-fa54b6404973~~ (fucked up, accidentally set to all Mero)
+- ~~b20c3951-4c8b-4b72-972e-623fd0e5b05f~~ (feeno = arian foster)
+- ~~1644775f-2dfb-4ba8-a7ff-5820d6892020~~ (this is where teh showtime show starts irl)
+- ~~4be48de0-dae3-4e53-a58f-192a8388fc37~~
+- ~~de26b2ad-474f-4079-bf68-99a7c1aa0b4d~~
+- ~~52cae1a7-8cf5-4842-b90e-14ac9466341c~~
+- ~~eaf8d52f-347e-4db9-8e27-e83c22478b8f~~
+- 3bba58fa-6fd2-401e-b325-e767cd2a5ca3
+- 2abfec8e-5d15-486b-ba73-a0168a340348
+- 34001748-a92b-4c21-a2b2-431e6f62be4d
+- e01a3507-0dc1-4085-8e5f-6f026e4eb005
+- cfe40890-3669-4596-9253-6b641aac235b
+- a9e2b2cb-477f-426c-89c4-2b09ce7c9b57
+- 5995910b-e56c-412a-a87c-65b5f9c79970
+- 75a95549-0fed-4aa9-a625-fba1fea6d9f4
+- 5d0d97e3-2e02-4d98-a058-80230dd8b5a7
+- ed68c729-99d6-4e5c-a7a8-e84e3d146bf2
+- 985d3fbd-5155-41af-9d01-81795cb852ad
+- 0868d968-c086-4bdf-9da2-d0a63c16e56f
+- 4000f0e7-94cc-432a-9bcf-b6b10fd5ecf4
+- 5b0e2e0d-da0e-4aa0-ab2d-754c7ee7d618
+- 2a08db40-54bd-4ccc-b8e4-b3824c36bbaa
+- 0c249973-a347-42b4-900e-1668d700dfc2
