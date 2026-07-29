@@ -149,7 +149,7 @@ export default async function Episode({
               {header}
             </h1>
             <h1 className="text-4xl text-amber-700 font-bold tracking-wide sm:text-3xl">
-              {title.trim()}
+              {title ? title.trim() : episode.title}
             </h1>
             <h2 className="flex items-center gap-2">
               <Calendar />

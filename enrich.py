@@ -13,9 +13,9 @@ supabase: Client = create_client(
         os.environ["SUPABASE_KEY"],
     )
 
-KNOWN_HOSTS = {"Desus Nice", "The Kid Mero", "Victor"}
+KNOWN_HOSTS = {"Desus Nice", "The Kid Mero", "Victor Lopez"}
 CONFIRMED_GUESTS = {"Vashti", "Jonah Hill", "Charles Oakley",
-  "A-Trak"}
+  "A-Trak", "Feeno"}
 KNOWN_NAMES = KNOWN_HOSTS | CONFIRMED_GUESTS
 CALLOUT_PATTERN = re.compile(r"bodega boys episode \d+", re.IGNORECASE)
 SPANISH_SIGNAL_THRESHOLD = 0.15
@@ -34,12 +34,13 @@ def main():
     unverified = 0
     needs_swap = 0
     needs_review=0
-    needs_resolution=0;
+    needs_resolution=0
     for episode in episodes.data:
-        if episode["speaker_check_status"] == 'pending':
+        if episode["speaker_check_status"] != 'verified':
             utterances = supabase.table("utterances").select("*").eq("episode_id", episode["id"]).execute()
             status = classify(utterances.data)
             episode["speaker_check_status"] = status
+            supabase.table("episodes").update({"speaker_check_status": status}).eq("id", episode["id"]).execute()
             # print(f"Status for episode {episode["title"]} is {status}")    
             if (status != 'verified'):
                 unverified+=1
@@ -48,8 +49,9 @@ def main():
                     needs_swap+=1
                 if (status == 'needs_review'):
                     needs_review+=1
+                    print(f"{episode["id"]} needs review")
                 if (status == 'needs_resolution'):
-                    print(f"{episode["id"]}")
+                    print(f"{episode["id"]} needs resolution")
                     needs_resolution+=1
             
             # print(f"Status for episode {episode["title"]} is {status} Check transcript at https://localhost:3000/{episode["id"]}")    

@@ -94,6 +94,7 @@ Count all occurrences they say Allegedly
 - Jay Z
 - Ray J
 - Joanne the Scammer
+- Kristaps Porzingis
 - End of the intro skit is usually marked by "Do the motherfucking drop" or some variation, play the intro song and then Desus will say "Bodega Boys episode 195.. "
 
 - After episode 12 or so they start doing the podcasts at 10am?
@@ -101,3 +102,11 @@ Count all occurrences they say Allegedly
 - find all times Desus got annoyed with Mero (usually besides Mero was too blazed)
 - EPisode 167 WFE: intro skit features MULTIPLE characters, a presidential debate between mr fun fun, michael anthony, Don Lemon
 - episode 200 2HUNDO: intro skit features many characters, yesenia, officer prosciutto, michael anthony
+
+### Place to vote on your favorite episode
+
+### Alternately, a bodega award where you say what your favorite episode was, most problematic, most personal idk
+
+### Bodega stats: graphs where you can visualize things ie see how episode duration changes over the course of the series, speaker contributions, how much victor talks, which ones have the most words etc
+
+on episode 18 desus says he'll start a series called Desus Pieces -> NOW he has created a yt / ig channel called desus pieces with julia

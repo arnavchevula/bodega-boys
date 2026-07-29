@@ -142,3 +142,9 @@
 - speakers are switched and C resolves to Mero
 
 OKay its not necesarily true that Desus always does the bodega boys episode \_\_\_ tag, sometimes mero does it in the intro skit impression too.. might be better to check the individual AKAs?
+
+I'm also noticing the bodega toons episodes don't have the utterances parsed properly? like the utterance will be partially both speakers but be atttributed to an A or B so I just did the best I can without just straight up creating new rows for them ie being more granular with the utterances. i think thats okay because the bodega toons are just excerpts from the actual podcast with animations over them so its not really contributing any new context for the app in verbal form.
+
+# Ep 100
+
+- appearances from every character in intro skit
