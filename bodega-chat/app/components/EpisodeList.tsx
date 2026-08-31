@@ -150,7 +150,7 @@ export default function EpisodeList({ episodes }) {
         {filteredItems.map((episode) => {
           return (
             <div
-              className="flex flex-col gap-2 rounded-xl shadow-xl justify-between fadeIn hover:scale-105 transition duration-300 "
+              className="flex flex-col gap-2 rounded-xl shadow-xl justify-between fadeIn hover:scale-105 transition duration-300"
               key={episode.id}
             >
               <Link href={`/episodes/${episode.id}`}>

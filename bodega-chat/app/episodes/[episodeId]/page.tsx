@@ -27,7 +27,19 @@ export default async function Episode({
   let { data: episodes, error: episode_error } = await db
     .from("episodes")
     .select(`*`);
+  const { data: stories, error: stories_error } = await db
+    .from("stories")
+    .select("*")
+    .eq("episode_id", episodeId);
+  console.log(stories);
 
+  const { data: characters, error: character_error } = await db
+    .from("character_appearances")
+    .select(
+      "id, character_id  (id, description, name, first_episode_id) , episode_id, start_ms, end_ms, context",
+    )
+    .eq("episode_id", episodeId);
+  console.log(characters);
   const sortedEpisodes = [...(episodes ?? [])].sort((a, b) => {
     const left = getEpisodeSortKey(a.title);
     const right = getEpisodeSortKey(b.title);
@@ -112,7 +124,8 @@ export default async function Episode({
     },
     {} as Record<string, number>,
   );
-
+  console.log(getWordCount(transcript?.full_text));
+  console.log(episode);
   return (
     <div>
       <div>
@@ -192,6 +205,21 @@ export default async function Episode({
                   );
                 })}
               </div>
+
+              <div>
+                <div className="w-full h-4 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+                  <div
+                    className="bg-red-500 h-4 rounded-l-xl flex items-center justify-center text-white text-sm relative"
+                    style={{
+                      width: `${(episode.sucio_word_count / getWordCount(transcript.full_text)) * 500}%`,
+                    }}
+                  >
+                    <p className="text-xs text-white absolute top-0 left-0">
+                      Sucio Meter
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {/** First Row (empty div, speaker avatars)**/}
@@ -249,7 +277,19 @@ export default async function Episode({
               }))}
             />
           </div>
-          <div className="bg-slate-200 p-4 rounded-md h-full flex items-center justify-center">
+
+          <div className="bg-slate-200 p-4 rounded-md">
+            {stories?.map((story) => (
+              <div key={story.id} className="mb-2">
+                <h3 className="text-lg font-bold">{story.speaker}</h3>
+                <p className="text-slate-500 text-base">{story.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-full w-full fadeIn">
+          <div className="bg-slate-200 p-4 rounded-md flex items-center justify-center mb-2">
             <iframe
               id="ytplayer"
               type="text/html"
@@ -259,9 +299,6 @@ export default async function Episode({
               className="rounded-md "
             />
           </div>
-        </div>
-
-        <div className="h-full w-full fadeIn">
           <TranscriptViewer
             utterances={utterances}
             episode={episode}

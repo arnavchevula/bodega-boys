@@ -110,3 +110,4 @@ Count all occurrences they say Allegedly
 ### Bodega stats: graphs where you can visualize things ie see how episode duration changes over the course of the series, speaker contributions, how much victor talks, which ones have the most words etc
 
 on episode 18 desus says he'll start a series called Desus Pieces -> NOW he has created a yt / ig channel called desus pieces with julia
+ep 22.5 hints towards break up with mero at 36 minutes in (we'll never talk)

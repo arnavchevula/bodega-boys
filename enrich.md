@@ -44,20 +44,26 @@ for batch in utterances where embedding IS NULL, batched 200 at a time:
 
 Dropped `skits`/`skit_appearances` from the original plan — most "skits" are fully described by which character is being performed, so they're derived from `character_appearances` rather than a separate canonical entity (see rationale below). AKAs are self-referential Desus/Mero nicknames, not characters, so they get their own table with no FK to `characters`. Characters should probably have a column that specifies if they belong to Desus or Mero? Many of the recurring characters are done by Mero ie Ben Carson, Yesenia, Michael Anthony sometimes done by both or racist NYC cop can be done by both...
 
+**FK action policy, applied throughout this block:** `ON UPDATE CASCADE` everywhere (a no-op in practice — every PK here is `GENERATED ALWAYS AS IDENTITY`, so an id never changes after insert, but it's the technically-correct default at zero cost). `ON DELETE` splits in two:
+
+- **References to `episodes(id)` from that episode's own child/appearance rows** (`character_appearances.episode_id`, `aka_mentions.episode_id`, `stories.episode_id`, `media_references.episode_id`, `episode_topics.episode_id`) → `CASCADE`. These rows are meaningless once their episode is gone, so deleting the episode should take them with it.
+- **References to `episodes(id)` from a canonical entity's `first_episode_id`** (`characters.first_episode_id`, `akas.first_episode_id`) → `SET NULL`. Deleting the episode where a character/AKA *first* appeared must not delete the character/AKA itself — it likely appears in many other episodes via its appearance rows; only the "first seen in" pointer goes stale.
+- **References to a canonical catalog table** (`character_appearances.character_id → characters`, `episode_topics.topic_id → topics`) → `RESTRICT`. The only time a `characters`/`topics` row gets deleted is a manual merge-dedup (two rows turn out to be the same entity) or purging a hallucinated entry — and in the merge case you want to repoint the appearances to the surviving id, not lose them. `RESTRICT` makes that the only path: `UPDATE character_appearances SET character_id = $survivor WHERE character_id = $dupe;` then the `DELETE` succeeds cleanly since nothing points at the duplicate anymore. A blind `CASCADE` here would silently wipe appearance rows that took a real Claude call to produce if a merge script ever forgot the repoint step — the same shape of mistake as the blanket `speaker` `UPDATE` incident in §7, just one layer down in the schema.
+
 ```sql
 -- Characters: one canonical name each, matched/deduped across episodes by the enrichment prompt
 CREATE TABLE characters (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   description TEXT,
-  first_episode_id BIGINT REFERENCES episodes(id),
+  first_episode_id BIGINT REFERENCES episodes(id) ON DELETE SET NULL ON UPDATE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE character_appearances (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  character_id BIGINT NOT NULL REFERENCES characters(id),
-  episode_id BIGINT NOT NULL REFERENCES episodes(id),
+  character_id BIGINT NOT NULL REFERENCES characters(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  episode_id BIGINT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE ON UPDATE CASCADE,
   start_ms INT NOT NULL,
   end_ms INT NOT NULL,
   context TEXT  -- short summary/quote of what happens in this appearance
@@ -71,7 +77,7 @@ CREATE TABLE akas (
   term TEXT NOT NULL UNIQUE,
   host TEXT NOT NULL CHECK (host IN ('Desus', 'Mero')),
   explanation TEXT,       -- e.g. "reference to Oasis's Champagne Supernova"
-  first_episode_id BIGINT REFERENCES episodes(id),
+  first_episode_id BIGINT REFERENCES episodes(id) ON DELETE SET NULL ON UPDATE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -79,29 +85,31 @@ CREATE TABLE akas (
 -- Skip this table if the glossary alone (term + explanation + first_episode_id) is enough.
 CREATE TABLE aka_mentions (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  aka_id BIGINT NOT NULL REFERENCES akas(id),
-  episode_id BIGINT NOT NULL REFERENCES episodes(id),
+  aka_id BIGINT NOT NULL REFERENCES akas(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  episode_id BIGINT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE ON UPDATE CASCADE,
   start_ms INT NOT NULL
 );
 
 -- Personal anecdotes / stories — one-off, no canonical parent needed
 CREATE TABLE stories (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  episode_id BIGINT NOT NULL REFERENCES episodes(id),
+  episode_id BIGINT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE ON UPDATE CASCADE,
   speaker TEXT,          -- 'Desus Nice' | 'The Kid Mero' | 'Victor'
   start_ms INT NOT NULL,
   end_ms INT NOT NULL,
   summary TEXT NOT NULL
 );
+CREATE INDEX stories_episode_idx ON stories(episode_id);
 
 -- Movies/songs/shows/media referenced (playlist + media-ideas features)
 CREATE TABLE media_references (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  episode_id BIGINT NOT NULL REFERENCES episodes(id),
+  episode_id BIGINT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE ON UPDATE CASCADE,
   title TEXT NOT NULL,
   media_type TEXT,       -- 'song' | 'movie' | 'show' | 'business_idea' | ...
   start_ms INT
 );
+CREATE INDEX media_references_episode_idx ON media_references(episode_id);
 
 -- Topics: many-to-many tags on an episode
 CREATE TABLE topics (
@@ -109,10 +117,12 @@ CREATE TABLE topics (
   name TEXT NOT NULL UNIQUE
 );
 CREATE TABLE episode_topics (
-  episode_id BIGINT NOT NULL REFERENCES episodes(id),
-  topic_id BIGINT NOT NULL REFERENCES topics(id),
+  episode_id BIGINT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  topic_id BIGINT NOT NULL REFERENCES topics(id) ON DELETE RESTRICT ON UPDATE CASCADE,
   PRIMARY KEY (episode_id, topic_id)
 );
+-- Composite PK covers "topics for episode X" (leftmost-column lookup); this covers the reverse.
+CREATE INDEX episode_topics_topic_idx ON episode_topics(topic_id);
 
 -- Intro boundary: every episode has one, it's episode metadata, not a catalog item
 ALTER TABLE episodes ADD COLUMN content_start_ms INT;
@@ -132,6 +142,17 @@ ALTER TABLE utterances ADD COLUMN embedding vector(1536);  -- dimension depends 
 CREATE INDEX utterances_embedding_idx ON utterances
   USING ivfflat (embedding vector_cosine_ops);
 ```
+
+### Seeding `akas` from the subreddit — done
+
+Before running enrichment over any episodes, seed `akas` from an existing community-curated source rather than starting the table empty and letting it build up organically over 265 episodes: [r/bodegaboys "An updated, definitive list of the Bodega Boys AKA's"](https://www.reddit.com/r/bodegaboys/comments/9nl50e/an_updated_definitive_list_of_the_bodega_boys/). Fans already compiled and vetted a term → nickname list here, which is exactly the `akas` shape (`term`, `host`, `explanation`).
+
+- Pull the post body/top comments (manually, since this environment can't fetch reddit.com or web.archive.org directly — copy the text in).
+- One-off pass to turn that raw text into `(term, host, explanation)` rows — either by hand or a single throwaway Claude call over the pasted text, not part of the regular `enrich.py` loop. `first_episode_id` stays `NULL` for these (the post doesn't reliably give per-nickname first-appearance episodes; leave that field to be backfilled naturally if enrichment ever encounters the term again with better provenance).
+- Insert directly into `akas` before the first enrichment run. This way `existing_akas` (§3.1) already contains the known glossary from episode 1, so Claude's per-episode matching reuses real terms from the start instead of redeclaring them as `is_new: true` the first several times they come up across early episodes.
+- Same idea could apply to `characters` later if a similarly curated community list of recurring bit characters turns up — not pursued yet since no such thread has been identified.
+
+**Status:** done. 130 rows (83 Desus, 47 Mero) parsed from the post body into `aka.json` at the repo root, ready for `akas.py` to insert. `host` values are the full names `Desus Nice` / `The Kid Mero` — this deviates from the `CHECK (host IN ('Desus', 'Mero'))` shown in the schema block above, but the actual `akas` table (created by hand via the Supabase UI, not from that `CREATE TABLE` statement) has `host` as a plain `text` column with no constraint, so it's a non-issue in practice. `akas.py` currently reads `data.json`, not `aka.json` — rename one or the other before running it.
 
 ### Why no `skits` table
 
@@ -281,6 +302,37 @@ Worth doing the scoped version rather than collapsing the whole label to `Victor
 
 `speaker_check_status` goes `pending → needs_review | verified`. Enrichment (§4) only processes episodes where `speaker_check_status = 'verified'`. Because `classify()` is pure and deterministic, there's no manual status-flipping step after a console fix — just re-run `enrich.py`. Any previously-flagged episode that now passes `classify()` (your fix resolved the contradiction, or brought all labels into `KNOWN_NAMES`) flips to `verified` automatically and becomes eligible for enrichment on that same run.
 
+### 2.5 TODO: known ASR misspellings (text-level correction, not just speaker)
+
+Same category of problem as §2's speaker labels, but at the word level inside `utterances.text` rather than the `speaker` column: AssemblyAI consistently mishears certain words/names because of the hosts' fast NYC accent (e.g. "Kid Mero" transcribed as **"Kimaro"**). Left uncorrected, this is worse than a cosmetic typo — it silently degrades or corrupts multiple downstream stages: `tsvector` search on "Kid Mero" won't match affected utterances, and re-running enrichment (§4) on any not-yet-processed episode will keep handing Claude the garbled string, which can get extracted as a bogus `akas`/`characters` entry (already happened once — "Kimaro" got cataloged as if it were a real nickname).
+
+This is a **correction step, not a crowd-annotation matter** — unlike the judgment calls in §2.2 (e.g. is this really Victor or a bit?), a confirmed systematic mishearing has one obviously correct fix and doesn't need a human-in-the-loop per occurrence. Run it as a one-time pass **before** enrichment touches any episode containing the misspelling (and before `embed.py`, so embeddings aren't computed against the garbled text).
+
+**Process, per confirmed misspelling:**
+
+1. Preview matches with a word-boundary, case-insensitive regex before writing anything:
+   ```sql
+   SELECT id, episode_id, text FROM utterances WHERE text ~* '\mKimaro\M';
+   ```
+2. Apply the fix, same word-boundary guard so it can't clobber a substring inside an unrelated word:
+   ```sql
+   UPDATE utterances
+   SET text = regexp_replace(text, '\mKimaro\M', 'Kid Mero', 'gi')
+   WHERE text ~* '\mKimaro\M';
+   ```
+3. Purge any catalog row the misspelling already polluted (e.g. a bogus `akas` entry — delete child rows first):
+   ```sql
+   DELETE FROM aka_mentions WHERE aka_id = (SELECT id FROM akas WHERE term = 'Kimaro');
+   DELETE FROM akas WHERE term = 'Kimaro';
+   ```
+   Sweep `characters`/`quotes` for the same string too, in case it leaked into a speaker/character field or a quote's text.
+
+**Running list of confirmed misspellings to fix this way** (add to as more turn up):
+
+| Heard as | Correct | Notes |
+| -------- | ------- | ----- |
+| `Kimaro`  | `Kid Mero` | Fast NYC-accent mishearing of "Kid Mero" |
+
 ---
 
 ## 3. State machine
@@ -298,6 +350,8 @@ episodes.enrichment_status: pending → processing → completed | failed
 ---
 
 ## 4. Per-episode enrichment flow
+
+**Model + billing.** Use the Anthropic Python SDK (`pip install anthropic`), default model `claude-opus-5`. This runs through `ANTHROPIC_API_KEY` from the Anthropic **Console** (console.anthropic.com) — pay-per-token, its own rate limits, and a completely separate billing account from any Claude.ai subscription (Pro/Max/Team) that Claude Code itself might be running under. Running this script does not touch or consume Claude Code's subscription usage, and vice versa — they only overlap if Claude Code is deliberately configured to authenticate with the same Console API key.
 
 ### 3.1 Input construction
 
@@ -317,96 +371,101 @@ existing_topics = supabase.table("topics").select("id, name").execute().data
 - Inject `existing_characters` / `existing_akas` / `existing_topics` as a "known entities" block: _"If this episode references one of these, use its exact name/term. Only propose a new one if it's genuinely not in this list."_
 - Inject the episode's utterances as the content to analyze.
 
-### 3.3 Force structured output via tool use
+### 3.3 Force structured output via `output_format`
 
-Define one tool with a JSON schema covering every category, and set `tool_choice` to force it — don't parse free-text JSON out of a text response, since this runs unattended over 265 episodes.
+Don't parse free-text JSON out of a text response (prompting the model to "reply with JSON" and hoping it comes back well-formed, with no stray prose or markdown fences) — this runs unattended over 265 episodes, so the shape needs to be guaranteed, not requested.
+
+Define a pydantic model covering every category and pass it as `output_format` to `client.messages.parse(...)`. The SDK converts the model to a JSON Schema and sends it as `output_config.format` (`type: "json_schema"`) — Anthropic's native structured-output feature, which constrains generation server-side to match the schema. This is a different mechanism from forcing a tool call via `tools`/`tool_choice` (the older workaround for the same problem, repurposing function-calling just to get reliable JSON) — no tool-call indirection here, `response.parsed_output` comes back as an already-validated instance of the model.
+
+The schema shape (as pydantic models — see `EnrichmentResult` and friends in `enrich.py`) covers:
 
 ```jsonc
 {
-  "name": "record_episode_enrichment",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "content_start_ms": { "type": "integer" },
-      "characters": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "name": { "type": "string" }, // must match existing_characters name, or a new name
-            "is_new": { "type": "boolean" },
-            "description": { "type": "string" }, // only meaningful when is_new
-            "start_ms": { "type": "integer" },
-            "end_ms": { "type": "integer" },
-            "context": { "type": "string" },
-          },
-          "required": ["name", "is_new", "start_ms", "end_ms"],
+  "type": "object",
+  "properties": {
+    "content_start_ms": { "type": "integer" },
+    "characters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }, // must match existing_characters name, or a new name
+          "is_new": { "type": "boolean" },
+          "description": { "type": "string" }, // only meaningful when is_new
+          "start_ms": { "type": "integer" },
+          "end_ms": { "type": "integer" },
+          "context": { "type": "string" },
         },
-      },
-      "akas": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "term": { "type": "string" },
-            "host": { "type": "string", "enum": ["Desus", "Mero"] },
-            "is_new": { "type": "boolean" },
-            "explanation": { "type": "string" },
-            "start_ms": { "type": "integer" },
-          },
-          "required": ["term", "host", "is_new", "start_ms"],
-        },
-      },
-      "stories": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "speaker": { "type": "string" },
-            "start_ms": { "type": "integer" },
-            "end_ms": { "type": "integer" },
-            "summary": { "type": "string" },
-          },
-          "required": ["speaker", "start_ms", "end_ms", "summary"],
-        },
-      },
-      "media_references": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "title": { "type": "string" },
-            "media_type": { "type": "string" },
-            "start_ms": { "type": "integer" },
-          },
-          "required": ["title", "media_type"],
-        },
-      },
-      "topics": {
-        "type": "array",
-        "items": { "type": "string" }, // matched against existing_topics or new
+        "required": ["name", "is_new", "start_ms", "end_ms"],
       },
     },
-    "required": [
-      "content_start_ms",
-      "characters",
-      "akas",
-      "stories",
-      "media_references",
-      "topics",
-    ],
+    "akas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "term": { "type": "string" },
+          "host": { "type": "string", "enum": ["Desus", "Mero"] },
+          "is_new": { "type": "boolean" },
+          "explanation": { "type": "string" },
+          "start_ms": { "type": "integer" },
+        },
+        "required": ["term", "host", "is_new", "start_ms"],
+      },
+    },
+    "stories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "speaker": { "type": "string" },
+          "start_ms": { "type": "integer" },
+          "end_ms": { "type": "integer" },
+          "summary": { "type": "string" },
+        },
+        "required": ["speaker", "start_ms", "end_ms", "summary"],
+      },
+    },
+    "media_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "media_type": { "type": "string" },
+          "start_ms": { "type": "integer" },
+        },
+        "required": ["title", "media_type"],
+      },
+    },
+    "topics": {
+      "type": "array",
+      "items": { "type": "string" }, // matched against existing_topics or new
+    },
   },
+  "required": [
+    "content_start_ms",
+    "characters",
+    "akas",
+    "stories",
+    "media_references",
+    "topics",
+  ],
 }
 ```
 
 ### 3.4 Upsert logic (the dedup step)
 
+Each array entry (`characters`, `akas`) is one **appearance/mention**, not one unique entity — the same character or AKA can legitimately show up as multiple entries in a single episode's response if it appears in multiple scenes (each with its own `start_ms`/`end_ms`/`context`). That's expected and maps directly onto the schema: `characters`/`akas` are one canonical row per entity, `character_appearances`/`aka_mentions` are many rows per entity.
+
 For each category with a canonical parent (`characters`, `akas`, `topics`):
 
-1. Case-insensitive match the returned name/term against the `existing_*` list fetched in 3.1.
-2. Match found → use its id.
-3. No match (or `is_new: true`) → insert new canonical row, use the new id.
-4. Insert the appearance/child row (`character_appearances`, `aka_mentions` if you keep it, `episode_topics`) referencing that id.
+1. Case-insensitive match the returned name/term against the `existing_*` list fetched in 3.1, **plus** any name already resolved earlier in this same episode's response (see the within-episode map below) — this avoids one specific bug: if a genuinely new character/AKA appears twice in one episode, both entries come back with `is_new: true` and the same name; naively inserting on every `is_new: true` would create a duplicate canonical row for the same entity in one run.
+2. Match found (existing or already-inserted-this-episode) → use its id.
+3. No match → insert new canonical row, use the new id.
+4. Insert the appearance/child row (`character_appearances`, `aka_mentions` if you keep it, `episode_topics`) referencing that id — one appearance row per array entry, even when it's a repeat of an id already used elsewhere in the same episode.
+
+Concretely, keep a plain `dict[str, int]` (`name.lower() → id`) per episode, seeded from `existing_characters`/`existing_akas`/`existing_topics` before processing that episode's array; check and update it as you iterate entries so the second occurrence of a brand-new name reuses the id from the first occurrence's insert instead of inserting again.
 
 `stories` and `media_references` have no canonical parent — just insert directly, no matching step.
 
