@@ -53,6 +53,15 @@ class QuoteEntry(BaseModel):
     quote: str
     start_ms: int
     foreshadowing: bool = False
+    dark_desus: bool = False
+    hollywood_desus: bool = False
+
+class NewsReferenceEntry(BaseModel):
+    speaker: str
+    start_ms: int
+    end_ms: int
+    headline: str
+    summary: str
 
 class EnrichmentResult(BaseModel):
     content_start_ms: int
@@ -64,6 +73,8 @@ class EnrichmentResult(BaseModel):
     chapters: list[ChapterEntry]    # sequential table-of-contents markers
     quotes: list[QuoteEntry]        # standalone notable/quotable lines
     sucio_utterance_starts: list[int]  # start_ms of every utterance in a porn/sex-related exchange
+    news_references: list[NewsReferenceEntry]  # real-world news/event references
+    mero_smacked_score: int         # 0-10, episode-level "smack city" rating
 
 KNOWN_HOSTS = {"Desus Nice", "The Kid Mero", "Victor Lopez"}
 CONFIRMED_GUESTS = {"Vashti", "Jonah Hill", "Charles Oakley",
@@ -84,17 +95,23 @@ ENRICHMENT_SYSTEM_PROMPT = textwrap.dedent(f"""\
 
     Structural markers to watch for:
     - Every episode opens with a recurring intro skit, immediately followed by Desus announcing "Bodega Boys episode N." That callout marks where real content begins — report its start_ms as `content_start_ms`. Everything before it is the intro bit, not a content item.
-    - AKAs are self-referential nicknames the hosts give each other. Log a mention every time one is actually spoken, anywhere in the episode — not only during a dedicated AKA segment. There's often (not always) a stretch later in the episode where Desus and/or Mero rattle off nicknames back-to-back, recapping older ones and coining new ones — treat that as the densest source, but don't limit yourself to it: a host invoking one of his own aliases in passing elsewhere (an outro sign-off, a mid-episode bit) is a mention too. Report one `akas` entry per mention, not per unique nickname — if the same term is said three times across the episode, that's three entries, each with its own `start_ms`. Each entry needs a `host` ("Desus" or "Mero" — whichever host the nickname is FOR, not who's speaking) and, when audible and genuinely new information, a short `explanation` of the reference/joke behind it — only the first time a term is coined needs one; repeats of an already-established nickname can leave it blank.
+    - AKAs are self-referential nicknames the hosts give each other. Log a mention every time one is actually spoken, anywhere in the episode — not only during a dedicated AKA segment. There's often (not always) a stretch later in the episode where Desus and/or Mero rattle off nicknames back-to-back, recapping older ones and coining new ones — treat that as the densest source, but don't limit yourself to it: a host invoking one of his own aliases in passing elsewhere (an outro sign-off, a mid-episode bit) is a mention too. Report one `akas` entry per mention, not per unique nickname — if the same term is said three times across the episode, that's three entries, each with its own `start_ms`. Each entry needs a `host` ("Desus Nice" or "The Kid Mero" — whichever host the nickname is FOR, not who's speaking) and, when audible and genuinely new information, a short `explanation` of the reference/joke behind it — only the first time a term is coined needs one; repeats of an already-established nickname can leave it blank.
 
     Report every `characters` appearance and every `akas` mention in the episode — the known lists in the user message are for matching against, not a filter on what to report. Users want a complete per-episode record of which characters and AKAs came up, including ones that already existed before this episode, not just newly-coined ones. If a character or AKA matches something in the known list, reuse its exact existing name/term and set `is_new: false`; only set `is_new: true` for ones genuinely absent from those lists. Never omit an entry just because it's already known.
 
     `chapters` is a table-of-contents for the entire episode, not a catalog of notable moments — break the full runtime, starting at 0, into a sequence of chapters with no gaps, in chronological order. The first chapter covers the intro skit itself, from 0 to `content_start_ms` — give it a real, specific title describing what actually happens in that episode's intro (it's a distinct bit each time, not boilerplate — don't just label it "Intro"). Every chapter after that needs a short (3-8 word), specific title describing what's discussed in that stretch (not a generic label like "Discussion"), and a `start_ms` marking where it begins. Aim for a natural segment size — roughly one chapter every 5-15 minutes of content is typical, but let actual topic shifts in the conversation drive the boundaries rather than a fixed cadence.
 
-    `quotes` are standalone, quotable lines worth surfacing on their own — funny, sharp, or emblematic one-liners a fan would want to pull out and share, not just any notable statement. Be selective: a handful of the best per episode is enough, not an exhaustive list. Each needs the exact `speaker`, the `quote` text verbatim, and its `start_ms`.
+    `quotes` are standalone, quotable lines worth surfacing on their own — funny, sharp, or emblematic one-liners a fan would want to pull out and share, not just any notable statement. Be selective: a handful of the best per episode is enough, not an exhaustive list. Each needs the exact `speaker`, the `quote` text verbatim, and its `start_ms`. Make sure to include when Desus does a hot take (usually prefaced by Desus saying "Desus Fuego take" or "hot take" or "gotta hear both sides" or "dark Desus moment" or similar, ie a hotep moment when mero says "teach these white devils")
 
     The hosts frequently digress into conversations about porn (they call it "pino" in the podcast to avoid censorship), adult film actresses, or other explicit sexual topics — sometimes self-aware, calling themselves "the Sucio Boys" or remarking on how long it's been since the last one. Identify every utterance that is part of one of these conversations and report its start_ms in `sucio_utterance_starts` — include both hosts' turns across the full back-and-forth, not just the utterance that kicks it off, since the goal is an accurate word count over the whole exchange. Use judgment: a single stray innuendo or one-off joke that doesn't develop into an actual exchange about the topic doesn't count — the utterance needs to genuinely be part of a sustained sex/porn-related conversation.
 
     Desus and Mero's real-life partnership had a high-profile, publicized ending years after these episodes aired. Some lines — jokes, asides, offhand predictions — read as eerily prescient in hindsight, e.g. joking about "a highly publicized breakup" once they're rich. Flag any quote like this with `foreshadowing: true`.
+
+    Two more quote flags, same pattern as `foreshadowing`: flag `dark_desus: true` when a quote is a "dark Desus moment" — a bleak, cynical, or hotep-adjacent aside that cuts against his usual chiller on-screen persona (often but not always prefaced by "hot take," "gotta hear both sides," or similar). Flag `hollywood_desus: true` when Desus leans on his own fame/industry access — name-dropping a celebrity he knows personally, industry gossip only an insider would have, or needling Mero about still being local while he's in LA/on TV. These are independent of each other and of `foreshadowing` — a quote can carry any combination, or none.
+
+    `mero_smacked_score`: a single 0-10 rating, for the whole episode, of how "high"/ blazed / stoned  Mero is during the podcast. Usually Mero smokes cannabis prior to the recording and they will frequently reference it by Desus saying "how smacked are you Mero" or "Smack City" Or "How High are you right now Mero?" Or some variation of this. Mero will also mention how much he smoked or how high he is. 0 is no signal either way, 10 means the episode is dominated by how high he is or desus mentioning it. Weigh it by the volume and intensity of that material across the full episode, not one line.
+
+    `news_references`: real-world news stories or current events the hosts riff on or react to — distinct from `media_references` (movies/music/shows/business ideas) and `stories` (personal anecdotes). Report the `speaker`, `start_ms`/`end_ms` of the discussion, a short `headline` describing the news item, and a one-sentence `summary` of what they actually said about it. Don't guess at outside details or a URL — capture only what's in the transcript itself.
     """)
 SPANISH_SIGNAL_THRESHOLD = 0.15
 SPANISH_MIN_WORDS = 3
@@ -275,6 +292,7 @@ def db_delete(table, match, dry_run):
 CHILD_TABLES = [
     "character_appearances", "aka_mentions", "stories",
     "media_references", "chapters", "quotes", "episode_topics",
+    "news_references",
 ]
 
 def clear_episode_children(episode_id, dry_run):
@@ -411,8 +429,20 @@ def enrich_episode(episode, utterances, existing_characters, existing_akas, exis
             "quote": quote.quote,
             "start_ms": quote.start_ms,
             "foreshadowing": quote.foreshadowing,
+            "dark_desus": quote.dark_desus,
+            "hollywood_desus": quote.hollywood_desus,
         }, dry_run)
     print(f"passed quote insert")
+    for news_reference in result.news_references:
+        db_insert("news_references", {
+            "episode_id": episode["id"],
+            "speaker": news_reference.speaker,
+            "start_ms": news_reference.start_ms,
+            "end_ms": news_reference.end_ms,
+            "headline": news_reference.headline,
+            "summary": news_reference.summary,
+        }, dry_run)
+    print(f"passed news reference insert")
     sucio_starts = set(result.sucio_utterance_starts)
     print((f"sucio starts: {sucio_starts}"))
     sucio_word_count = sum(
@@ -423,6 +453,7 @@ def enrich_episode(episode, utterances, existing_characters, existing_akas, exis
     db_update("episodes", {
         "content_start_ms": result.content_start_ms,
         "sucio_word_count": sucio_word_count,
+        "mero_smacked_score": result.mero_smacked_score,
         "enrichment_status": "completed",
         "enrichment_error": None,
     }, {"id": episode["id"]}, dry_run)

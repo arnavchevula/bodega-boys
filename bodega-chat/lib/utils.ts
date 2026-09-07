@@ -84,6 +84,40 @@ export function getBorderColor(speaker: string) {
   }
 }
 
+export function getPillColor(speaker: string) {
+  switch (speaker) {
+    case "Desus Nice":
+      return "bg-cyan-400 text-white";
+    case "The Kid Mero":
+      return "bg-orange-600 text-white";
+    case "Victor Lopez":
+      return "bg-cyan-800 text-white";
+    default:
+      return "bg-gray-400 text-white";
+  }
+}
+
+export function getMediaReferenceColor(mediaReference: string) {
+  switch (mediaReference) {
+    case "album":
+      return "bg-green-400 text-white";
+    case "film":
+      return "bg-blue-400 text-white";
+    case "tv":
+      return "bg-purple-400 text-white";
+    case "theater":
+      return "bg-yellow-400 text-white";
+    case "website":
+      return "bg-pink-400 text-white";
+    case "song":
+      return "bg-red-400 text-white";
+    case "book":
+      return "bg-indigo-400 text-white";
+    default:
+      return "bg-gray-400 text-white";
+  }
+}
+
 export function getInitials(name: string) {
   return name
     .trim()

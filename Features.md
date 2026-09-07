@@ -73,6 +73,8 @@ Count all occurrences they say Allegedly
 # Desus Fuego
 
 - Hot takes from Desus
+- Dark Desus Moments
+- Hotep moments (teach these white devils)
 
 # Characters
 
@@ -111,3 +113,5 @@ Count all occurrences they say Allegedly
 
 on episode 18 desus says he'll start a series called Desus Pieces -> NOW he has created a yt / ig channel called desus pieces with julia
 ep 22.5 hints towards break up with mero at 36 minutes in (we'll never talk)
+
+Vice era starts on episode 37

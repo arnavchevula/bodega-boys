@@ -40,11 +40,11 @@ export function Nav() {
           <Link href="/characters">Characters</Link>
         </div>
         <div
-          className={`flex items-center gap-x-2 hover:bg-slate-800 rounded-md px-2 py-1 ${pathname.includes("skits") ? "bg-slate-800 text-sky-400" : ""}`}
+          className={`flex items-center gap-x-2 hover:bg-slate-800 rounded-md px-2 py-1 ${pathname.includes("akas") ? "bg-slate-800 text-sky-400" : ""}`}
         >
           {" "}
           <Drama />
-          <Link href="/skits">Skits</Link>
+          <Link href="/akas">Akas</Link>
         </div>
       </div>
       <div className="flex gap-x-2 items-center">

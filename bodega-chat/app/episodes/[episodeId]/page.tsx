@@ -11,6 +11,7 @@ import {
 import EntitityGraph from "@/app/components/EntityGraph";
 import TranscriptViewer from "@/app/components/TranscriptViewer";
 import Link from "next/link";
+import EpisodeInfo from "@/app/components/EpisodeInfo";
 
 export default async function Episode({
   params,
@@ -40,6 +41,18 @@ export default async function Episode({
     )
     .eq("episode_id", episodeId);
   console.log(characters);
+
+  const { data: quotes, error: quotes_error } = await db
+    .from("quotes")
+    .select("*")
+    .eq("episode_id", episodeId);
+  console.log(quotes);
+  const { data: media_references, error: media_reference_error } = await db
+    .from("media_references")
+    .select("*")
+    .eq("episode_id", episodeId);
+  console.log(media_references);
+
   const sortedEpisodes = [...(episodes ?? [])].sort((a, b) => {
     const left = getEpisodeSortKey(a.title);
     const right = getEpisodeSortKey(b.title);
@@ -278,7 +291,8 @@ export default async function Episode({
             />
           </div>
 
-          <div className="bg-slate-200 p-4 rounded-md">
+          {/* <div className="bg-slate-200 p-4 rounded-md">
+            <h3 className="text-lg font-bold mb-2">Stories</h3>
             {stories?.map((story) => (
               <div key={story.id} className="mb-2">
                 <h3 className="text-lg font-bold">{story.speaker}</h3>
@@ -286,6 +300,47 @@ export default async function Episode({
               </div>
             ))}
           </div>
+
+          <div className="bg-slate-200 p-4 rounded-md">
+            <h3 className="text-lg font-bold mb-2">Character Appearances</h3>
+            {characters?.map((appearance) => (
+              <div key={appearance.id} className="mb-2">
+                <h4 className="text-md font-semibold">
+                  {appearance.character_id.name}
+                </h4>
+                <p>{appearance.character_id.description}</p>
+                <p className="text-slate-500 text-sm">
+                  {appearance.context} (from{" "}
+                  {new Date(appearance.start_ms).toISOString().substr(11, 8)} to{" "}
+                  {new Date(appearance.end_ms).toISOString().substr(11, 8)})
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-slate-200 p-4 rounded-md">
+            <h3 className="text-lg font-bold mb-2">Quotes</h3>
+            {quotes?.map((quote) => (
+              <div key={quote.id} className="mb-2">
+                <p className="text-slate-700 text-base italic">
+                  "{quote.quote}"
+                </p>
+                <p className="text-md font-semibold">
+                  {quote.speaker}{" "}
+                  <span className="text-slate-500 text-sm">
+                    {new Date(quote.start_ms).toISOString().substr(11, 8)}
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div> */}
+
+          <EpisodeInfo
+            stories={stories}
+            quotes={quotes}
+            characters={characters}
+            media_references={media_references}
+          />
         </div>
 
         <div className="h-full w-full fadeIn">

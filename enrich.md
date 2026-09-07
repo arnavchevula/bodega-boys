@@ -531,3 +531,41 @@ Happened once already (see `swap.md` — `11763f23-a31a-4a50-a8a8-067440bb4745`,
 8. This restores AssemblyAI's *original* labels, which may still be pre-correction (e.g. still needs the Desus/Mero swap this episode was already flagged for in `swap.md`) — it undoes the accidental UPDATE, it doesn't finish the correction. Re-run the intended fix afterward, this time against the right uuid.
 
 General lesson for `§2.3`-style manual corrections going forward: prefer `UPDATE ... WHERE episode_id = $1 AND id IN (...)` or a `RETURNING` clause you eyeball before committing, and paste the target uuid from the episode's own row (e.g. copy it out of a fresh `SELECT` in the same console session) rather than from a list in a markdown file, so a stale/mistyped uuid is caught before it runs.
+
+---
+
+## 8. TODO: real-world news/event references
+
+**Status: tagging half done.** The hosts frequently riff on actual news stories/current events (distinct from `media_references`, which is scoped to movies/music/shows/business ideas, and from `stories`, which is personal anecdotes) — these previously had no dedicated catalog item, sometimes only incidentally captured as a `chapters` title. `EnrichmentResult.news_references` (a `NewsReferenceEntry` list: `speaker`, `start_ms`, `end_ms`, `headline`, `summary`) and the matching prompt paragraph are now in `enrich.py`, alongside two other additions bundled in the same prompt update: `QuoteEntry.dark_desus`/`hollywood_desus` (same pattern as `foreshadowing`) and `episodes.mero_smacked_score` (0-10, episode-level). `news_references` was added to `CHILD_TABLES` so `clear_episode_children` covers it on retries, same as every other child table.
+
+Still **not** built: an actual working `url` per news reference — see §9. The enrichment call itself deliberately never emits one (see below).
+
+**Why the tagging call can't resolve the URL itself.** That call has no web access — structured extraction over the transcript only, via `output_format` — so a URL there would be recalled from training memory, not fetched, i.e. a guess dressed up as a link. `url` stays nullable on `news_references` until the §9 pass runs.
+
+**Backfill, decided.** Enrichment runs slowly, episode by episode (deliberately — more ideas like this one are expected to surface while listening), so most already-`completed` episodes are missing `news_references`/the two quote flags/`mero_smacked_score` entirely. Chose the narrow path over a full reset-to-`pending` re-run: a separate one-off backfill script/prompt/schema containing *only* these new fields, run against already-completed episodes. It must not call `clear_episode_children`/touch `CHILD_TABLES` at all — that wipes every child table for the episode unconditionally before the Claude call even runs, which would destroy the existing `characters`/`quotes`/`stories`/etc. this pass isn't supposed to touch. Newly-found `dark_desus`/`hollywood_desus` lines get `INSERT`ed as fresh `quotes` rows rather than matched against already-stored ones — simpler, and avoids reopening the original (selective) quotability judgment call. Going forward, new episodes just go through the one merged prompt/schema in the normal loop — no second pass needed per-episode.
+
+---
+
+## 9. News reference URL resolution — second pass, own script
+
+Not built yet. Runs after §8's tagging (either the main loop or the backfill script) has populated `news_references` rows. Mirrors `embed.py`'s shape from §5 more than `enrich.py`'s: no `output_format`, no per-episode looping, no awareness of `enrichment_status` — just a flat sweep over one table.
+
+```python
+# news_urls.py — separate script, own supabase client, own CLI
+for row in news_references where url IS NULL:
+    result = claude.messages.create(
+        model=...,
+        tools=[{"type": "web_search_20250305", ...}],   # or a news search API instead
+        messages=[{"role": "user", "content":
+            f"Find the real news article this refers to: \"{row['headline']}\" — "
+            f"{row['summary']}. The podcast episode aired around {episode_air_date}. "
+            f"Return the single best matching article URL, or none if you can't find one."
+        }],
+    )
+    db_update("news_references", {"url": result.url}, {"id": row["id"]}, dry_run)
+```
+
+- **`WHERE url IS NULL` doubles as the pending-work marker** — same trick as `embed.py`'s `WHERE embedding IS NULL`, no separate status column needed. Safe to rerun anytime as new `news_references` rows appear from either the main loop or the backfill script.
+- **Needs the episode's air date as context**, not just `headline`/`summary` — headlines are often ambiguous years later without a date anchor (e.g. "coach fired" means nothing without knowing which year). Join `news_references.episode_id → episodes` to pull it in per row.
+- **Not batchable like `embed.py`** — web search is a tool-use loop per query, not a single request that accepts an array of inputs. Budget for one Claude call per row (or a small handful concurrently), not one call for hundreds of headlines at once.
+- **Dry-run first, same as everywhere else in this pipeline** — print the row + resolved URL before writing, since a wrong URL is worse than a blank one. Leave `url` `NULL` when Claude reports no confident match rather than writing a guess.
