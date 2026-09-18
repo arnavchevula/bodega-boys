@@ -1,6 +1,14 @@
 import { supabase } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Calendar, ChevronRight, ChevronLeft } from "lucide-react";
+import {
+  Clock,
+  Calendar,
+  ChevronRight,
+  ChevronLeft,
+  Leaf,
+  Rose,
+  User,
+} from "lucide-react";
 import {
   getInitials,
   getSpeakerColor,
@@ -52,6 +60,11 @@ export default async function Episode({
     .select("*")
     .eq("episode_id", episodeId);
   console.log(media_references);
+  const { data: news_references, error: news_reference_error } = await db
+    .from("news_references")
+    .select("*")
+    .eq("episode_id", episodeId);
+  console.log(news_references);
 
   const sortedEpisodes = [...(episodes ?? [])].sort((a, b) => {
     const left = getEpisodeSortKey(a.title);
@@ -197,7 +210,7 @@ export default async function Episode({
 
           <div className="bg-slate-200 p-4 rounded-md box-border">
             <div>
-              <div className="w-full h-4 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+              <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
                 {activeHosts.map((speaker, index) => {
                   const isFirst = index === 0;
                   const isLast = index === activeHosts.length - 1;
@@ -209,9 +222,10 @@ export default async function Episode({
                         backgroundColor: getSpeakerColor(speaker),
                       }}
                       key={speaker}
-                      className={`h-4 ${getSpeakerColor(speaker)} ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""} absolute top-0 left-0 flex items-center fadeWidth origin-left`}
+                      className={`h-8 ${getSpeakerColor(speaker)} ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""} absolute top-0 left-0 flex items-center fadeWidth origin-left`}
                     >
-                      <p className="text-xs text-white font-bold ml-1 truncate">
+                      <p className="text-xs text-white font-bold ml-1 truncate flex items-center gap-2">
+                        <User size={16} />
                         {speaker}
                       </p>
                     </div>
@@ -220,15 +234,32 @@ export default async function Episode({
               </div>
 
               <div>
-                <div className="w-full h-4 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+                <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
                   <div
-                    className="bg-red-500 h-4 rounded-l-xl flex items-center justify-center text-white text-sm relative"
+                    className="bg-red-500 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
                     style={{
                       width: `${(episode.sucio_word_count / getWordCount(transcript.full_text)) * 500}%`,
                     }}
                   >
-                    <p className="text-xs text-white absolute top-0 left-0">
+                    <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
+                      <Rose size={16} />
                       Sucio Meter
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+                  <div
+                    className="bg-green-800 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
+                    style={{
+                      width: `${episode.mero_smacked_score * 10}%`,
+                    }}
+                  >
+                    <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
+                      <Leaf size={16} />
+                      Smacked Meter
                     </p>
                   </div>
                 </div>
@@ -291,55 +322,12 @@ export default async function Episode({
             />
           </div>
 
-          {/* <div className="bg-slate-200 p-4 rounded-md">
-            <h3 className="text-lg font-bold mb-2">Stories</h3>
-            {stories?.map((story) => (
-              <div key={story.id} className="mb-2">
-                <h3 className="text-lg font-bold">{story.speaker}</h3>
-                <p className="text-slate-500 text-base">{story.summary}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-slate-200 p-4 rounded-md">
-            <h3 className="text-lg font-bold mb-2">Character Appearances</h3>
-            {characters?.map((appearance) => (
-              <div key={appearance.id} className="mb-2">
-                <h4 className="text-md font-semibold">
-                  {appearance.character_id.name}
-                </h4>
-                <p>{appearance.character_id.description}</p>
-                <p className="text-slate-500 text-sm">
-                  {appearance.context} (from{" "}
-                  {new Date(appearance.start_ms).toISOString().substr(11, 8)} to{" "}
-                  {new Date(appearance.end_ms).toISOString().substr(11, 8)})
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-slate-200 p-4 rounded-md">
-            <h3 className="text-lg font-bold mb-2">Quotes</h3>
-            {quotes?.map((quote) => (
-              <div key={quote.id} className="mb-2">
-                <p className="text-slate-700 text-base italic">
-                  "{quote.quote}"
-                </p>
-                <p className="text-md font-semibold">
-                  {quote.speaker}{" "}
-                  <span className="text-slate-500 text-sm">
-                    {new Date(quote.start_ms).toISOString().substr(11, 8)}
-                  </span>
-                </p>
-              </div>
-            ))}
-          </div> */}
-
           <EpisodeInfo
             stories={stories}
             quotes={quotes}
             characters={characters}
             media_references={media_references}
+            news_references={news_references}
           />
         </div>
 

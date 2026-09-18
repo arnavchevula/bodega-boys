@@ -39,8 +39,8 @@ export default function RootLayout({
         inter.variable,
       )}
     >
-      {/* <body className="min-h-full flex flex-col container mx-auto"> */}
-      <body className="min-h-full flex flex-col container mx-auto bg-[url('@/images/nyc.avif')] bg-cover bg-center bg-no-repeat">
+      <body className="min-h-full flex flex-col container mx-auto">
+        {/* <body className="min-h-full flex flex-col container mx-auto bg-[url('@/images/nyc.avif')] bg-cover bg-center bg-no-repeat"> */}
         <Nav />
         {children}
         <Footer />
