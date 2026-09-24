@@ -148,3 +148,7 @@ I'm also noticing the bodega toons episodes don't have the utterances parsed pro
 # Ep 100
 
 - appearances from every character in intro skit
+
+# episode 11
+
+- utterances in the intro are switched? so rest of episode is wrong while intro is correct... switch them and manually correct the intro

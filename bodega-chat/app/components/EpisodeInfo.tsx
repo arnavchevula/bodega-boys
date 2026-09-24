@@ -50,7 +50,7 @@ export default function EpisodeInfo({
       <Collapsible
         open={storiesOpen}
         onOpenChange={setStoriesOpen}
-        className="w-full bg-slate-200 p-4 rounded-md mb-2 shadow-lg"
+        className="w-full p-4 mb-2 border-b-2 border-slate-200"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export default function EpisodeInfo({
       <Collapsible
         open={quotesOpen}
         onOpenChange={setQuotesOpen}
-        className="w-full bg-slate-200 p-4 rounded-md mb-2"
+        className="w-full p-4 mb-2 border-b-2 border-slate-200"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -121,7 +121,11 @@ export default function EpisodeInfo({
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-2 mt-2">
+        <CollapsibleContent
+          className="px-2 mt-2 overflow-hidden 
+  data-[state=open]:animate-collapsible-down 
+  data-[state=closed]:animate-collapsible-up"
+        >
           {quotes?.map((quote) => (
             <div key={quote.id} className="mb-2">
               <div className="flex justify-between items-baseline">
@@ -162,7 +166,7 @@ export default function EpisodeInfo({
       <Collapsible
         open={charactersOpen}
         onOpenChange={setCharactersOpen}
-        className="w-full bg-slate-200 p-4 rounded-md mb-2"
+        className="w-full p-4 mb-2 border-b-2 border-slate-200"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -176,7 +180,11 @@ export default function EpisodeInfo({
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-2 mt-2">
+        <CollapsibleContent
+          className="px-2 mt-2 overflow-hidden 
+  data-[state=open]:animate-collapsible-down 
+  data-[state=closed]:animate-collapsible-up"
+        >
           {characters?.map((appearance) => (
             <div key={appearance.id} className="mb-2">
               <div className="flex justify-between items-center">
@@ -199,7 +207,7 @@ export default function EpisodeInfo({
       <Collapsible
         open={mediaReferencesOpen}
         onOpenChange={setMediaReferencesOpen}
-        className="w-full bg-slate-200 p-4 rounded-md mb-2"
+        className="w-full p-4 rounded-md mb-2 border-b-2 border-slate-200"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -213,7 +221,11 @@ export default function EpisodeInfo({
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-2">
+        <CollapsibleContent
+          className="px-2 mt-2 overflow-hidden 
+  data-[state=open]:animate-collapsible-down 
+  data-[state=closed]:animate-collapsible-up"
+        >
           {media_references?.map((reference) => (
             <div key={reference.id} className="mb-2">
               <div className="flex justify-between items-center border-l-2 pl-2">
@@ -239,7 +251,7 @@ export default function EpisodeInfo({
       <Collapsible
         open={newsReferencesOpen}
         onOpenChange={setNewsReferencesOpen}
-        className="w-full bg-slate-200 p-4 rounded-md mb-2"
+        className="w-full p-4 rounded-md mb-2 border-b-2 border-slate-200"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -253,7 +265,11 @@ export default function EpisodeInfo({
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-2 mt-2">
+        <CollapsibleContent
+          className="px-2 mt-2 overflow-hidden 
+  data-[state=open]:animate-collapsible-down 
+  data-[state=closed]:animate-collapsible-up"
+        >
           {news_references?.map((reference) => (
             <div key={reference.id} className="mb-2">
               <div className="flex justify-between items-baseline border-l-2 pl-2">

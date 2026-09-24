@@ -16,7 +16,7 @@ export default function TranscriptViewer({
   const [activeSpeaker, setActiveSpeaker] = useState(null);
 
   return (
-    <div className="bg-slate-200 p-4 rounded-md">
+    <div className=" p-4 rounded-md">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <Button

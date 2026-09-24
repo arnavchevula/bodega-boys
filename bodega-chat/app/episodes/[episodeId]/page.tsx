@@ -8,6 +8,7 @@ import {
   Leaf,
   Rose,
   User,
+  MicVocal,
 } from "lucide-react";
 import {
   getInitials,
@@ -150,10 +151,166 @@ export default async function Episode({
     },
     {} as Record<string, number>,
   );
-  console.log(getWordCount(transcript?.full_text));
-  console.log(episode);
+
   return (
     <div>
+      <div className="flex flex-col gap-2 sm:flex-row mt-2">
+        <div className="aspect-video w-fit">
+          <iframe
+            id="ytplayer"
+            type="text/html"
+            width="350"
+            height="350"
+            src={`https://www.youtube.com/embed/${episode?.youtube_id}`}
+            className="rounded-md"
+          />
+        </div>
+        <div className="flex flex-col gap-2 justify-between">
+          <div>
+            <div className="italic text-base">{header}</div>
+            <div className="font-bold text-5xl">
+              {" "}
+              {title ? title.trim() : episode.title}
+            </div>
+          </div>
+          <div className="flex justify-around gap-4 mt-4">
+            {activeHosts.map((speaker) => {
+              return (
+                <div
+                  key={speaker}
+                  className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30 grayscale" : ""}`}
+                >
+                  <Avatar
+                    className={`size-32 hover:grayscale transition duration-300`}
+                  >
+                    <AvatarImage
+                      src={images[speaker as keyof typeof images]?.src}
+                      alt={speaker}
+                    />
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                      <span className="text-sm font-semibold">
+                        {speakerTime[speaker]?.words ?? "-"}{" "}
+                        <span className="font-normal text-slate-300">
+                          words
+                        </span>
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {speakerTime[speaker]?.turns ?? "-"}{" "}
+                        <span className="font-normal text-slate-300">
+                          turns
+                        </span>
+                      </span>
+                    </div>
+                    <AvatarFallback>{getInitials(speaker)}</AvatarFallback>
+                  </Avatar>
+                  <h2 className="font-semibold uppercase tracking-tight text-slate-600">
+                    {speaker}
+                  </h2>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="flex items-center gap-2 rounded-xl border border-blue-500 py-1 px-2">
+              <Calendar className="text-slate-500 text-sm" />
+              <span>
+                {new Date(episode?.date).toLocaleDateString({
+                  weekday: "long",
+                  month: "long",
+                  day: "long",
+                  year: "long",
+                })}
+              </span>
+            </span>
+            <span className="flex items-center gap-2 rounded-xl border border-orange-500 py-1 px-2">
+              <Clock className="text-slate-500 text-sm" />
+              <span>
+                {Math.floor(episode.duration / 3600)}:
+                {Math.floor((episode.duration % 3600) / 60)
+                  .toString()
+                  .padStart(2, "0")}{" "}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-full w-full flex flex-col gap-2">
+        <div className="p-4 rounded-md box-border">
+          <div>
+            <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+              {activeHosts.map((speaker, index) => {
+                const isFirst = index === 0;
+                const isLast = index === activeHosts.length - 1;
+                return (
+                  <div
+                    style={{
+                      width: `${(speakerTime[speaker]?.time / totalSpoken) * 100}%`,
+                      left: `${progressBarOffsets[speaker] ?? 0}%`,
+                      backgroundColor: getSpeakerColor(speaker),
+                    }}
+                    key={speaker}
+                    className={`h-8 ${getSpeakerColor(speaker)} ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""} absolute top-0 left-0 flex items-center fadeWidth origin-left`}
+                  >
+                    <p className="text-xs text-white font-bold ml-1 truncate flex items-center gap-2">
+                      <User size={16} />
+                      {speaker}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+                <div
+                  className="bg-red-500 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
+                  style={{
+                    width: `${(episode.sucio_word_count / getWordCount(transcript.full_text)) * 500}%`,
+                  }}
+                >
+                  <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
+                    <Rose size={16} />
+                    Sucio Meter
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
+                <div
+                  className="bg-green-800 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
+                  style={{
+                    width: `${episode.mero_smacked_score * 10}%`,
+                  }}
+                >
+                  <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
+                    <Leaf size={16} />
+                    Smacked Meter
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <EpisodeInfo
+          stories={stories}
+          quotes={quotes}
+          characters={characters}
+          media_references={media_references}
+          news_references={news_references}
+        />
+      </div>
+      <div className="fadeIn">
+        <TranscriptViewer
+          utterances={utterances}
+          episode={episode}
+          activeHosts={activeHosts}
+          full_transcript={transcript?.full_text}
+        />
+      </div>
       <div>
         <div className="flex items-center gap-2 justify-between">
           {prevEpisode && (
@@ -179,175 +336,6 @@ export default async function Episode({
               <ChevronRight />
             </Link>
           )}
-        </div>
-      </div>
-      <div className="lg:grid lg:grid-cols-2 flex-1 font-sans min-h-screen mt-2 gap-4 m-4 sm:m-0 pb-2">
-        <div className="h-full w-full flex flex-col gap-2">
-          <div className="bg-slate-200 p-4 rounded-md">
-            <h1 className="text-2xl italic text-amber-800 font-bold tracking-wide sm:text-xl">
-              {header}
-            </h1>
-            <h1 className="text-4xl text-amber-700 font-bold tracking-wide sm:text-3xl">
-              {title ? title.trim() : episode.title}
-            </h1>
-            <h2 className="flex items-center gap-2">
-              <Calendar />
-              {new Date(episode?.date).toLocaleDateString({
-                weekday: "long",
-                month: "long",
-                day: "long",
-                year: "long",
-              })}
-            </h2>
-            <h3 className="flex items-center gap-2">
-              <Clock />
-              {Math.floor(episode.duration / 3600)}:
-              {Math.floor((episode.duration % 3600) / 60)
-                .toString()
-                .padStart(2, "0")}{" "}
-            </h3>
-          </div>
-
-          <div className="bg-slate-200 p-4 rounded-md box-border">
-            <div>
-              <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
-                {activeHosts.map((speaker, index) => {
-                  const isFirst = index === 0;
-                  const isLast = index === activeHosts.length - 1;
-                  return (
-                    <div
-                      style={{
-                        width: `${(speakerTime[speaker]?.time / totalSpoken) * 100}%`,
-                        left: `${progressBarOffsets[speaker] ?? 0}%`,
-                        backgroundColor: getSpeakerColor(speaker),
-                      }}
-                      key={speaker}
-                      className={`h-8 ${getSpeakerColor(speaker)} ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""} absolute top-0 left-0 flex items-center fadeWidth origin-left`}
-                    >
-                      <p className="text-xs text-white font-bold ml-1 truncate flex items-center gap-2">
-                        <User size={16} />
-                        {speaker}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div>
-                <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
-                  <div
-                    className="bg-red-500 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
-                    style={{
-                      width: `${(episode.sucio_word_count / getWordCount(transcript.full_text)) * 500}%`,
-                    }}
-                  >
-                    <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
-                      <Rose size={16} />
-                      Sucio Meter
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
-                  <div
-                    className="bg-green-800 h-8 rounded-l-xl flex items-center justify-center text-white text-sm relative fadeWidth origin-left"
-                    style={{
-                      width: `${episode.mero_smacked_score * 10}%`,
-                    }}
-                  >
-                    <p className="text-xs text-white absolute top-1/2 -translate-y-1/2 left-0 ml-1 font-bold flex items-center gap-2">
-                      <Leaf size={16} />
-                      Smacked Meter
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {/** First Row (empty div, speaker avatars)**/}
-              <div></div>
-              {allHosts.map((speaker) => {
-                return (
-                  <div
-                    key={speaker}
-                    className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30 grayscale" : ""}`}
-                  >
-                    <Avatar className={`size-32 `}>
-                      <AvatarImage
-                        src={images[speaker as keyof typeof images]?.src}
-                        alt={speaker}
-                      />
-                      <AvatarFallback>{getInitials(speaker)}</AvatarFallback>
-                    </Avatar>
-                    <h2 className="font-semibold uppercase tracking-tight text-slate-600">
-                      {speaker}
-                    </h2>
-                  </div>
-                );
-              })}
-              {/** second Row (words label div, word counts)**/}
-              <div>Words: </div>
-              {allHosts.map((speaker) => {
-                return (
-                  <div
-                    key={speaker}
-                    className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30" : ""}`}
-                  >
-                    {speakerTime[speaker]?.words ?? "-"}
-                  </div>
-                );
-              })}
-
-              <div>Turns: </div>
-              {allHosts.map((speaker) => {
-                return (
-                  <div
-                    key={speaker}
-                    className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30" : ""}`}
-                  >
-                    {speakerTime[speaker]?.turns ?? "-"}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <EntitityGraph
-              entities={Array.from(sortedEntities, ([key, value]) => ({
-                key,
-                value,
-              }))}
-            />
-          </div>
-
-          <EpisodeInfo
-            stories={stories}
-            quotes={quotes}
-            characters={characters}
-            media_references={media_references}
-            news_references={news_references}
-          />
-        </div>
-
-        <div className="h-full w-full fadeIn">
-          <div className="bg-slate-200 p-4 rounded-md flex items-center justify-center mb-2">
-            <iframe
-              id="ytplayer"
-              type="text/html"
-              width="100%"
-              height="400"
-              src={`https://www.youtube.com/embed/${episode?.youtube_id}`}
-              className="rounded-md "
-            />
-          </div>
-          <TranscriptViewer
-            utterances={utterances}
-            episode={episode}
-            activeHosts={activeHosts}
-            full_transcript={transcript?.full_text}
-          />
         </div>
       </div>
     </div>
