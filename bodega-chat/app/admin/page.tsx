@@ -22,11 +22,11 @@ export default async function Admin({}) {
               <div>{episode.title}</div>
               <div>{episode.pipeline_status}</div>
               <div>{episode.assemblyai_transcript_id}</div>
-              <div className="truncate">
+              {/* <div className="truncate">
                 {episode.transcripts?.episode_id}{" "}
                 {episode.transcripts?.created_at}{" "}
                 {episode.transcripts?.full_text}
-              </div>
+              </div> */}
             </Fragment>
           );
         })}
