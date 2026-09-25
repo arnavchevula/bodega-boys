@@ -7,7 +7,7 @@ export default function Home() {
         <h3 className="italic text-base sm:text-md font-semibold">
           the brand is strong.
         </h3>
-        <h1 className="text-7xl font-bold tracking-wide lowercase text-orange-400 bg-sky-700 p-2">
+        <h1 className="text-7xl font-bold tracking-wide lowercase text-orange-400 bg-sky-700 p-2 text-center">
           Bodega Hub
         </h1>
         <h2 className="text-sky-500 font-semibold text-lg bg-white px-1">
