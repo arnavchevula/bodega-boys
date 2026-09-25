@@ -43,13 +43,13 @@ export const getEpisodeCategory = (title: string) => {
 
 export const images: Record<string, { src: string }> = {
   "The Kid Mero": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/mero.webp",
+    src: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/mero.webp`,
   },
   "Desus Nice": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/desus.webp",
+    src: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/desus.webp`,
   },
   "Victor Lopez": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/victor.webp",
+    src: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/victor.webp`,
   },
 };
 
