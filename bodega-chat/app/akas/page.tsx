@@ -25,7 +25,7 @@ export default async function Akas() {
           <span key={host} className="flex rounded-xl bg-slate-100 p-2 w-fit">
             <span className="text-lg font-bold flex items-center gap-2">
               <span className="text-sm text-slate-400">{host}</span>
-              {count}
+              {count as React.ReactNode}
             </span>
           </span>
         ))}

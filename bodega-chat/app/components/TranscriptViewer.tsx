@@ -5,15 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBorderColor, getInitials, images, getWordCount } from "@/lib/utils";
 import { supabase } from "@/lib/db";
+import type { Episodes, Utterances } from "@/lib/types";
 
 export default function TranscriptViewer({
   utterances,
   episode,
   activeHosts,
   full_transcript,
+}: {
+  utterances: Utterances[];
+  episode: Episodes;
+  activeHosts: string[];
+  full_transcript: string;
 }) {
   const [transcript, setTranscript] = useState(utterances);
-  const [activeSpeaker, setActiveSpeaker] = useState(null);
+  const [activeSpeaker, setActiveSpeaker] = useState<string>("");
 
   return (
     <div className=" p-4 rounded-md">
@@ -22,7 +28,7 @@ export default function TranscriptViewer({
           <Button
             onClick={() => {
               setTranscript(utterances);
-              setActiveSpeaker(null);
+              setActiveSpeaker("");
             }}
             className={activeSpeaker === null ? "bg-blue-500 text-white" : ""}
           >

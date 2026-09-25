@@ -17,10 +17,10 @@ import {
   images,
   getEpisodeSortKey,
 } from "@/lib/utils";
-import EntitityGraph from "@/app/components/EntityGraph";
 import TranscriptViewer from "@/app/components/TranscriptViewer";
 import Link from "next/link";
 import EpisodeInfo from "@/app/components/EpisodeInfo";
+import type { CharacterAppearance } from "@/lib/types";
 
 export default async function Episode({
   params,
@@ -98,21 +98,21 @@ export default async function Episode({
     .eq("episode_id", episodeId)
     .single();
 
-  const { data: entities, error: entity_error } = await db
-    .from("entities")
-    .select("*")
-    .eq("episode_id", episodeId);
+  // const { data: entities, error: entity_error } = await db
+  //   .from("entities")
+  //   .select("*")
+  //   .eq("episode_id", episodeId);
 
-  const entityMap = (entities ?? []).reduce(
-    (acc, entity) => {
-      acc[entity.text] = (acc[entity.text] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-  const sortedEntities = new Map(
-    Object.entries(entityMap).sort(([, a], [, b]) => b - a),
-  );
+  // const entityMap = (entities ?? []).reduce(
+  //   (acc, entity) => {
+  //     acc[entity.text] = (acc[entity.text] || 0) + 1;
+  //     return acc;
+  //   },
+  //   {} as Record<string, number>,
+  // );
+  // const sortedEntities = new Map(
+  //   Object.entries(entityMap).sort(([, a], [, b]) => b - a),
+  // );
 
   const speakers = [
     ...new Set(utterances?.map((utterance) => utterance.speaker)),
@@ -158,7 +158,6 @@ export default async function Episode({
         <div className="aspect-video w-fit">
           <iframe
             id="ytplayer"
-            type="text/html"
             width="350"
             height="350"
             src={`https://www.youtube.com/embed/${episode?.youtube_id}`}
@@ -214,11 +213,10 @@ export default async function Episode({
             <span className="flex items-center gap-2 rounded-xl border border-blue-500 py-1 px-2">
               <Calendar className="text-slate-500 text-sm" />
               <span>
-                {new Date(episode?.date).toLocaleDateString({
-                  weekday: "long",
+                {new Date(episode?.date).toLocaleDateString(undefined, {
                   month: "long",
-                  day: "long",
-                  year: "long",
+                  day: "numeric",
+                  year: "numeric",
                 })}
               </span>
             </span>
@@ -296,19 +294,19 @@ export default async function Episode({
         </div>
 
         <EpisodeInfo
-          stories={stories}
-          quotes={quotes}
-          characters={characters}
-          media_references={media_references}
-          news_references={news_references}
+          stories={stories ?? []}
+          quotes={quotes ?? []}
+          characters={(characters as unknown as CharacterAppearance[]) ?? []}
+          media_references={media_references ?? []}
+          news_references={news_references ?? []}
         />
       </div>
       <div className="fadeIn">
         <TranscriptViewer
-          utterances={utterances}
-          episode={episode}
+          utterances={utterances ?? []}
+          episode={episode!}
           activeHosts={activeHosts}
-          full_transcript={transcript?.full_text}
+          full_transcript={transcript?.full_text ?? ""}
         />
       </div>
       <div>

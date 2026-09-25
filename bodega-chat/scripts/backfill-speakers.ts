@@ -4,15 +4,15 @@ dotenv.config();
 
 async function backfillSpeakers() {
   const db = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SECRET_KEY,
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!,
   );
   console.log(
     `Connected to Supabase: ${process.env.SUPABASE_URL} ${process.env.SUPABASE_SECRET_KEY}`,
   );
   const { data: episodes } = await db.from("episodes").select("id");
 
-  for (const episode of episodes) {
+  for (const episode of episodes ?? []) {
     const { data: utterances } = await db
       .from("utterances")
       .select("speaker")

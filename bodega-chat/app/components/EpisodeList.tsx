@@ -23,11 +23,12 @@ import {
 import { Fragment, useMemo, useState } from "react";
 import Fuse from "fuse.js";
 import { getEpisodeCategory } from "@/lib/utils";
+import type { Episodes } from "@/lib/types";
 
-export default function EpisodeList({ episodes }) {
+export default function EpisodeList({ episodes }: { episodes: Episodes[] }) {
   const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState([]);
-  const [speakerFilter, setSpeakerFilter] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [speakerFilter, setSpeakerFilter] = useState<string[]>([]);
   console.log(categoryFilter);
   const fuse = useMemo(() => {
     return new Fuse(episodes, {

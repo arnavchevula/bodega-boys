@@ -9,7 +9,7 @@ import {
 import {
   Book,
   ChevronsUpDown,
-  Quote,
+  Quote as QuoteIcon,
   Users,
   Music,
   Share,
@@ -26,6 +26,14 @@ import {
 } from "@/lib/utils";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type {
+  Story,
+  MediaReference,
+  Quote,
+  CharacterAppearance,
+  NewsReference,
+} from "@/lib/types";
+
 export default function EpisodeInfo({
   stories,
   quotes,
@@ -33,11 +41,11 @@ export default function EpisodeInfo({
   media_references,
   news_references,
 }: {
-  stories: object;
-  quotes: object;
-  characters: object;
-  media_references: object;
-  news_references: object;
+  stories: Story[];
+  quotes: Quote[];
+  characters: CharacterAppearance[];
+  media_references: MediaReference[];
+  news_references: NewsReference[];
 }) {
   const [storiesOpen, setStoriesOpen] = useState(false);
   const [quotesOpen, setQuotesOpen] = useState(false);
@@ -111,7 +119,7 @@ export default function EpisodeInfo({
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
-            <Quote />
+            <QuoteIcon />
             <h4 className="text-lg font-bold">Quotes</h4>
           </div>
           <CollapsibleTrigger asChild>
@@ -189,7 +197,7 @@ export default function EpisodeInfo({
             <div key={appearance.id} className="mb-2">
               <div className="flex justify-between items-center">
                 <h4 className="text-md font-semibold">
-                  {appearance.character_id.name}
+                  {appearance.character_id?.name}
                 </h4>
                 <span className="text-slate-500 text-sm flex items-center underline gap-2">
                   {new Date(appearance.start_ms).toISOString().substr(11, 8)} -
@@ -197,7 +205,7 @@ export default function EpisodeInfo({
                   <Clock size={16} />
                 </span>
               </div>
-              <p>{appearance.character_id.description}</p>
+              <p>{appearance.character_id?.description}</p>
               <p className="text-slate-500 text-sm">{appearance.context}</p>
             </div>
           ))}
