@@ -7,8 +7,7 @@ export default async function Akas() {
     acc[aka.host] = (acc[aka.host] || 0) + 1;
     return acc;
   }, {});
-  console.log(hostCounts);
-  console.log("akas", akas, error);
+
   return (
     <div className="flex flex-col flex-1 mx-auto">
       <div className="flex flex-col p-2 sm:p-0">
