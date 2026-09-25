@@ -43,13 +43,13 @@ export const getEpisodeCategory = (title: string) => {
 
 export const images: Record<string, { src: string }> = {
   "The Kid Mero": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/sign/images/mero.webp?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85ZmZhNmQ1OC1hMmVhLTRkMDItYTdjYi0yNzQ1M2E3OWM1MDciLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZXMvbWVyby53ZWJwIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MjQxNDcwNiwiZXhwIjoxODEzOTUwNzA2fQ.tqduvRHgHWNSYM8ltZqRojxWW5BDi87ztyZ9Vcq70RI",
+    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/mero.webp",
   },
   "Desus Nice": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/sign/images/desus.webp?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85ZmZhNmQ1OC1hMmVhLTRkMDItYTdjYi0yNzQ1M2E3OWM1MDciLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZXMvZGVzdXMud2VicCIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI0MTQ2ODUsImV4cCI6MTgxMzk1MDY4NX0.xxJCPVaG6EndEHXcevioi6Uvz6qtZQyqFuXyKSkBFik",
+    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/desus.webp",
   },
   "Victor Lopez": {
-    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/sign/images/victor.webp?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85ZmZhNmQ1OC1hMmVhLTRkMDItYTdjYi0yNzQ1M2E3OWM1MDciLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZXMvdmljdG9yLndlYnAiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgyNDE0NzE0LCJleHAiOjE4MTM5NTA3MTR9.Lyhmzp12ZIxA4Rm7Ic3QQo2GqwypCr77IKVW-W6T5n0",
+    src: "https://gfcspnocbsvapvvatkzf.supabase.co/storage/v1/object/public/images/victor.webp",
   },
 };
 
