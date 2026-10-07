@@ -2,7 +2,8 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <div className="flex flex-col-reverse sm:flex-row border-t  border-slate-300 mx-auto container justify-between items-center text-sm backdrop-blur-sm">
+    <footer className="border-t border-slate-300 backdrop-blur-sm bg-linear-to-r from-blue-500/80 to-blue-800/80 text-white">
+    <div className="flex flex-col-reverse sm:flex-row mx-auto container justify-between items-center text-sm">
       <div>Copyright @ 2026</div>
       <div className="flex gap-2 items-center">
         <Link
@@ -29,10 +30,11 @@ export function Footer() {
           <img
             src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png"
             alt="Buy Me a Coffee"
-            style={{ height: "60px !important", width: "217px !important" }}
+            className="h-[60px] w-[217px]"
           />
         </a>
       </div>
     </div>
+    </footer>
   );
 }

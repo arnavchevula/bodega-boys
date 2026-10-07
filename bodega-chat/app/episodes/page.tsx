@@ -21,7 +21,7 @@ export default async function Episodes() {
   });
 
   return (
-    <div className="flex flex-col flex-1 items-center mx-auto">
+    <div className="flex flex-col flex-1 items-center container mx-auto">
       <div className="flex justify-between gap-2 w-full p-4 sm:p-0">
         <div className="flex flex-col">
           <h1 className="text-5xl font-bold mt-2">Episodes</h1>

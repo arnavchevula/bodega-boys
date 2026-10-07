@@ -18,6 +18,7 @@ import {
   getEpisodeSortKey,
 } from "@/lib/utils";
 import TranscriptViewer from "@/app/components/TranscriptViewer";
+import EpisodeToc from "@/app/components/EpisodeToc";
 import Link from "next/link";
 import EpisodeInfo from "@/app/components/EpisodeInfo";
 import type { CharacterAppearance } from "@/lib/types";
@@ -153,87 +154,89 @@ export default async function Episode({
   );
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 sm:flex-row mt-2">
-        <div className="aspect-video w-fit">
-          <iframe
-            id="ytplayer"
-            width="350"
-            height="350"
-            src={`https://www.youtube.com/embed/${episode?.youtube_id}`}
-            className="rounded-md"
-          />
-        </div>
-        <div className="flex flex-col gap-2 justify-between">
-          <div>
-            <div className="italic text-base">{header}</div>
-            <div className="font-bold text-5xl">
-              {" "}
-              {title ? title.trim() : episode.title}
+    <div className="">
+      <div className="bg-linear-to-r from-blue-500/80 to-blue-800/80 py-8">
+        <div className="flex flex-col items-center gap-6 sm:flex-row mt-2 container mx-auto">
+          <div className="aspect-video w-full sm:w-fit flex items-center justify-center">
+            <iframe
+              id="ytplayer"
+              width="350"
+              height="350"
+              src={`https://www.youtube.com/embed/${episode?.youtube_id}`}
+              className="rounded-md border-6 border-white"
+            />
+          </div>
+          <div className="flex flex-col gap-2 justify-between">
+            <div>
+              <div className="italic text-base text-white">{header}</div>
+              <div className="font-bold text-5xl text-white">
+                {" "}
+                {title ? title.trim() : episode.title}
+              </div>
             </div>
-          </div>
-          <div className="flex justify-around gap-4 mt-4">
-            {activeHosts.map((speaker) => {
-              return (
-                <div
-                  key={speaker}
-                  className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30 grayscale" : ""}`}
-                >
-                  <Avatar
-                    className={`size-32 hover:grayscale transition duration-300`}
+            <div className="flex justify-around gap-4 mt-4">
+              {activeHosts.map((speaker) => {
+                return (
+                  <div
+                    key={speaker}
+                    className={`flex flex-col items-center ${!speakers.includes(speaker) ? "opacity-30 grayscale" : ""}`}
                   >
-                    <AvatarImage
-                      src={images[speaker as keyof typeof images]?.src}
-                      alt={speaker}
-                    />
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
-                      <span className="text-sm font-semibold">
-                        {speakerTime[speaker]?.words ?? "-"}{" "}
-                        <span className="font-normal text-slate-300">
-                          words
+                    <Avatar
+                      className={`size-32 hover:grayscale transition duration-300`}
+                    >
+                      <AvatarImage
+                        src={images[speaker as keyof typeof images]?.src}
+                        alt={speaker}
+                      />
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                        <span className="text-sm font-semibold">
+                          {speakerTime[speaker]?.words ?? "-"}{" "}
+                          <span className="font-normal text-slate-300">
+                            words
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {speakerTime[speaker]?.turns ?? "-"}{" "}
-                        <span className="font-normal text-slate-300">
-                          turns
+                        <span className="text-sm font-semibold">
+                          {speakerTime[speaker]?.turns ?? "-"}{" "}
+                          <span className="font-normal text-slate-300">
+                            turns
+                          </span>
                         </span>
-                      </span>
-                    </div>
-                    <AvatarFallback>{getInitials(speaker)}</AvatarFallback>
-                  </Avatar>
-                  <h2 className="font-semibold uppercase tracking-tight text-slate-600">
-                    {speaker}
-                  </h2>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="flex items-center gap-2 rounded-xl border border-blue-500 py-1 px-2">
-              <Calendar className="text-slate-500 text-sm" />
-              <span>
-                {new Date(episode?.date).toLocaleDateString(undefined, {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                      </div>
+                      <AvatarFallback>{getInitials(speaker)}</AvatarFallback>
+                    </Avatar>
+                    <h2 className="font-semibold uppercase tracking-tight text-white">
+                      {speaker}
+                    </h2>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="flex items-center gap-2 py-1 px-2 text-white">
+                <Calendar className="text-white text-sm" />
+                <span>
+                  {new Date(episode?.date).toLocaleDateString(undefined, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-2 rounded-xl border border-orange-500 py-1 px-2">
-              <Clock className="text-slate-500 text-sm" />
-              <span>
-                {Math.floor(episode.duration / 3600)}:
-                {Math.floor((episode.duration % 3600) / 60)
-                  .toString()
-                  .padStart(2, "0")}{" "}
+              <span className="flex items-center gap-2 py-1 px-2 text-white">
+                <Clock className="text-sm" />
+                <span>
+                  {Math.floor(episode.duration / 3600)}:
+                  {Math.floor((episode.duration % 3600) / 60)
+                    .toString()
+                    .padStart(2, "0")}{" "}
+                </span>
               </span>
-            </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="h-full w-full flex flex-col gap-2">
+      <div className="h-full w-full flex flex-col gap-2 container mx-auto">
         <div className="p-4 rounded-md box-border">
           <div>
             <div className="w-full h-8 bg-slate-800 rounded-xl my-2 relative flex items-center box-border">
@@ -292,24 +295,34 @@ export default async function Episode({
             </div>
           </div>
         </div>
+        <div
+          className="lg:grid
+    lg:grid-cols-[1fr_200px] lg:gap-8"
+        >
+          <div className="fadeIn">
+            <EpisodeInfo
+              stories={stories ?? []}
+              quotes={quotes ?? []}
+              characters={
+                (characters as unknown as CharacterAppearance[]) ?? []
+              }
+              media_references={media_references ?? []}
+              news_references={news_references ?? []}
+            />
+            <TranscriptViewer
+              utterances={utterances ?? []}
+              episode={episode!}
+              activeHosts={activeHosts}
+              full_transcript={transcript?.full_text ?? ""}
+            />
+          </div>
+          <aside className="hidden lg:block">
+            <EpisodeToc />
+          </aside>
+        </div>
+      </div>
 
-        <EpisodeInfo
-          stories={stories ?? []}
-          quotes={quotes ?? []}
-          characters={(characters as unknown as CharacterAppearance[]) ?? []}
-          media_references={media_references ?? []}
-          news_references={news_references ?? []}
-        />
-      </div>
-      <div className="fadeIn">
-        <TranscriptViewer
-          utterances={utterances ?? []}
-          episode={episode!}
-          activeHosts={activeHosts}
-          full_transcript={transcript?.full_text ?? ""}
-        />
-      </div>
-      <div>
+      <div className="container mx-auto">
         <div className="flex items-center gap-2 justify-between">
           {prevEpisode && (
             <Link

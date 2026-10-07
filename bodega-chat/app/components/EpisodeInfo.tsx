@@ -47,11 +47,11 @@ export default function EpisodeInfo({
   media_references: MediaReference[];
   news_references: NewsReference[];
 }) {
-  const [storiesOpen, setStoriesOpen] = useState(false);
-  const [quotesOpen, setQuotesOpen] = useState(false);
-  const [charactersOpen, setCharactersOpen] = useState(false);
-  const [mediaReferencesOpen, setMediaReferencesOpen] = useState(false);
-  const [newsReferencesOpen, setNewsReferencesOpen] = useState(false);
+  const [storiesOpen, setStoriesOpen] = useState(true);
+  const [quotesOpen, setQuotesOpen] = useState(true);
+  const [charactersOpen, setCharactersOpen] = useState(true);
+  const [mediaReferencesOpen, setMediaReferencesOpen] = useState(true);
+  const [newsReferencesOpen, setNewsReferencesOpen] = useState(true);
 
   return (
     <div className="flex flex-col items-center justify-center">
@@ -59,6 +59,7 @@ export default function EpisodeInfo({
         open={storiesOpen}
         onOpenChange={setStoriesOpen}
         className="w-full p-4 mb-2 border-b-2 border-slate-200"
+        id="stories"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -116,6 +117,7 @@ export default function EpisodeInfo({
         open={quotesOpen}
         onOpenChange={setQuotesOpen}
         className="w-full p-4 mb-2 border-b-2 border-slate-200"
+        id="quotes"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -135,11 +137,29 @@ export default function EpisodeInfo({
   data-[state=closed]:animate-collapsible-up"
         >
           {quotes?.map((quote) => (
-            <div key={quote.id} className="mb-2">
-              <div className="flex justify-between items-baseline">
-                <p className="text-slate-600 text-base italic max-w-[70%] tracking-tight hover:underline transition duration-300">
-                  "{quote.quote}"
-                </p>
+            <div
+              key={quote.id}
+              className="mb-2 hover:bg-slate-100 transition duration-300 rounded-md p-2"
+            >
+              <div
+                className={`flex justify-between gap-2 border-l-2 ${getBorderColor(quote.speaker)} pl-2`}
+              >
+                <div className="flex items-center gap-2">
+                  <Avatar className="size-8">
+                    <AvatarImage
+                      src={images[quote.speaker as keyof typeof images]?.src}
+                      alt={quote.speaker}
+                    />
+                    <AvatarFallback>
+                      {getInitials(quote.speaker)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2
+                    className={`italic text-neutral-700 font-bold tracking-tight text-bas`}
+                  >
+                    {quote.speaker}{" "}
+                  </h2>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500 text-sm underline">
                     {new Date(quote.start_ms).toISOString().substr(11, 8)}
@@ -150,21 +170,10 @@ export default function EpisodeInfo({
                   />
                 </div>
               </div>
-              <div
-                className={`flex items-center gap-2 border border-slate-300 w-fit px-4 py-2 rounded-md uppercase tracking-wide ${getPillColor(quote.speaker)}`}
-              >
-                <Avatar className="size-8">
-                  <AvatarImage
-                    src={images[quote.speaker as keyof typeof images]?.src}
-                    alt={quote.speaker}
-                  />
-                  <AvatarFallback>{getInitials(quote.speaker)}</AvatarFallback>
-                </Avatar>
-                <div
-                  className={`text-sm font-semibold} hover:text-black transition duration-300 `}
-                >
-                  {quote.speaker}{" "}
-                </div>
+              <div className="flex justify-between">
+                <p className="text-slate-600 text-sm italic  hover:underline transition duration-300 mt-2">
+                  "{quote.quote}"
+                </p>
               </div>
             </div>
           ))}
@@ -175,6 +184,7 @@ export default function EpisodeInfo({
         open={charactersOpen}
         onOpenChange={setCharactersOpen}
         className="w-full p-4 mb-2 border-b-2 border-slate-200"
+        id="characters"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -216,6 +226,7 @@ export default function EpisodeInfo({
         open={mediaReferencesOpen}
         onOpenChange={setMediaReferencesOpen}
         className="w-full p-4 rounded-md mb-2 border-b-2 border-slate-200"
+        id="media_references"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
@@ -260,6 +271,7 @@ export default function EpisodeInfo({
         open={newsReferencesOpen}
         onOpenChange={setNewsReferencesOpen}
         className="w-full p-4 rounded-md mb-2 border-b-2 border-slate-200"
+        id="news_references"
       >
         <div className="flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">

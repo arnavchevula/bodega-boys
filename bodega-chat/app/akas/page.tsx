@@ -9,7 +9,7 @@ export default async function Akas() {
   }, {});
 
   return (
-    <div className="flex flex-col flex-1 mx-auto">
+    <div className="flex flex-col flex-1 container mx-auto">
       <div className="flex flex-col p-2 sm:p-0">
         <h1 className="text-5xl font-bold mt-2">Akas</h1>
         <h4 className="text-base text-slate-500 mt-2">
